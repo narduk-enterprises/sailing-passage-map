@@ -62,7 +62,7 @@ interface ArticleOptions {
 }
 
 export function useArticleSchema(options: ArticleOptions) {
-  const { headline, description, datePublished, dateModified, author, section } = options
+  const { headline, description, datePublished, dateModified, author, section, image, tags } = options
 
   const authors = Array.isArray(author) ? author : [author]
 
@@ -76,7 +76,9 @@ export function useArticleSchema(options: ArticleOptions) {
         name: a.name,
         url: a.url,
       })),
+      image: image as any,
       articleSection: section,
+      keywords: tags,
     } as any),
   ])
 }
