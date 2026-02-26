@@ -11,16 +11,11 @@ export default defineEventHandler((event) => {
   const config = useRuntimeConfig(event)
   const key = (config.public.indexNowKey as string) || ''
 
-  if (!key) {
-    throw createError({ statusCode: 404, message: 'IndexNow not configured' })
-  }
+  if (!key) return // Continue pipeline if no key config
 
-  // Only respond if the requested filename matches the key
-  const param = getRouterParam(event, 'key')
-  if (param !== key) {
-    throw createError({ statusCode: 404, message: 'Not found' })
+  // Only intercept requests for the key
+  if (event.path === `/${key}.txt`) {
+    setResponseHeader(event, 'content-type', 'text/plain')
+    return key
   }
-
-  setResponseHeader(event, 'content-type', 'text/plain')
-  return key
 })
