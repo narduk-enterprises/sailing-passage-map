@@ -200,13 +200,13 @@ Add any `r2_buckets` bindings if the source app had them.
 1. **Deploy Workflow:** The `.github/workflows/deploy.yml` is already scaffolded. Ensure `DOPPLER_TOKEN` is set as a GitHub Action secret in the new repo.
 2. **Remove Examples App:** If this is a production project, delete the generic examples app shipped with the template:
    ```bash
-   rm -rf apps/examples
+   rm -rf ~/code/<source>/<project-name>-v2/apps/examples
    ```
    _(Ensure you update `pnpm-workspace.yaml` if it had explicit references, though `apps/_` glob usually handles this).\*
 3. **Delete Leftovers:**
    ```bash
-   find apps/web -name "*.bak" -delete
-   find apps/web -name ".DS_Store" -delete
+   find ~/code/<source>/<project-name>-v2/apps/web -name "*.bak" -delete
+   find ~/code/<source>/<project-name>-v2/apps/web -name ".DS_Store" -delete
    ```
 
 ---
@@ -215,6 +215,7 @@ Add any `r2_buckets` bindings if the source app had them.
 
 1. Install, clean, and build plugins:
    ```bash
+   cd ~/code/<source>/<project-name>-v2
    pnpm install
    rm -rf apps/web/.nuxt apps/web/.output
    pnpm run build:plugins
