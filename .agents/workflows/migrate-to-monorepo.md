@@ -20,11 +20,13 @@ description: Migrate a flat Nuxt 4 app from ~/code into the nuxt-v4-template mon
 
 ## Phase 0: Scaffold the New Repo
 
-1. Navigate to the source repository and clone the template into a sub-directory:
+All migration work happens in `/tmp` to keep `~/code` clean.
+
+1. Clone the source repo and the template into `/tmp`:
    ```bash
-   cd ~/code/<source>
-   git clone https://github.com/loganrenz/nuxt-v4-template.git ./<project-name>-v2
-   cd ./<project-name>-v2
+   git clone ~/code/<source> /tmp/<source>
+   git clone https://github.com/loganrenz/nuxt-v4-template.git /tmp/<project-name>-v2
+   cd /tmp/<project-name>-v2
    rm -rf .git
    git init && git add . && git commit -m "chore: scaffold from nuxt-v4-template"
    ```
@@ -56,18 +58,21 @@ These exist identically in `layers/narduk-nuxt-layer/` and must **not** be dupli
 
 - `app/composables/useSeo.ts` and `app/composables/useSchemaOrg.ts`
 - `app/components/OgImage/*`
-- `app/plugins/gtag.client.ts`, `app/plugins/posthog.client.ts`, `app/plugins/csrf.client.ts`
-- `server/utils/` (`auth.ts`, `database.ts`, `google.ts`, `kv.ts`, `r2.ts`, `rateLimit.ts` - unless heavily customized)
+- `app/plugins/gtag.client.ts`, `app/plugins/posthog.client.ts`, `app/plugins/csrf.client.ts`, `app/plugins/fetch.client.ts`
+- `server/utils/` (`auth.ts`, `admin.ts`, `database.ts`, `google.ts`, `kv.ts`, `r2.ts`, `rateLimit.ts` - unless heavily customized)
 - `server/middleware/csrf.ts`, `server/middleware/d1.ts`
 - `server/api/health.get.ts`, `server/api/indexnow/*`
+
+> **Important:** If the source app has a `server/utils/admin.ts` that exports `requireAdmin`, it is now provided by the layer's `server/utils/auth.ts`. Do NOT copy it — Nuxt will warn about duplicated imports and ignore the app-level version.
 
 ### 1b. Files That Belong in `apps/web/` (MOVE)
 
 These files contain the specific business logic and should be copied:
 
 - `app/pages/**`, `app/components/**` (only app-specific ones), `app/composables/**` (app-specific), `app/layouts/**`, `app/middleware/**`
-- `app/assets/css/main.css` (app-specific theme customizations)
-- `app/app.vue`, `app/error.vue`, `app/app.config.ts`
+- `app/assets/css/main.css` — **Only app-specific styles** (see Phase 2 CSS merge instructions)
+- `app/app.vue` — **Merge, do not overwrite** (see Phase 2 app.vue instructions)
+- `app/error.vue`, `app/app.config.ts`
 - `content/**` and `content.config.ts` (if using Nuxt Content)
 - `server/api/**` (app-specific routes only)
 - `server/database/schema.ts` (app-specific schema, extending base schema)
@@ -89,36 +94,63 @@ These files contain the specific business logic and should be copied:
 
 Execute commands to selectively copy code from the old repo to the new `apps/web/` directory.
 
-1. **Copy app-specific source files:**
+> **Important:** The template scaffold may not have all target directories pre-created (e.g. `components/`, `composables/`, `plugins/`, `types/`, `server/api/`, `server/utils/`). Always `mkdir -p` before copying.
+
+1. **Create target directories and copy app-specific source files:**
 
    ```bash
    # Make sure you are in the new repo
-   cd ~/code/<source>/<project-name>-v2
+   cd /tmp/<project-name>-v2
+
+   # Create directories that may not exist in the scaffold
+   mkdir -p apps/web/app/components apps/web/app/composables apps/web/app/plugins \
+            apps/web/app/types apps/web/app/middleware apps/web/server/api apps/web/server/utils
 
    # Pages, components, layouts, composables, middleware
-   cp -R ~/code/<source>/app/pages/* apps/web/app/pages/ || true
-   cp -R ~/code/<source>/app/components/* apps/web/app/components/ || true
-   cp -R ~/code/<source>/app/layouts/* apps/web/app/layouts/ || true
-   cp -R ~/code/<source>/app/composables/* apps/web/app/composables/ || true
-   cp -R ~/code/<source>/app/middleware/* apps/web/app/middleware/ || true
+   cp -R /tmp/<source>/app/pages/* apps/web/app/pages/ || true
+   cp -R /tmp/<source>/app/components/* apps/web/app/components/ || true
+   cp -R /tmp/<source>/app/layouts/* apps/web/app/layouts/ || true
+   cp -R /tmp/<source>/app/composables/* apps/web/app/composables/ || true
+   cp -R /tmp/<source>/app/middleware/* apps/web/app/middleware/ || true
 
    # Static assets and Content
-   cp -R ~/code/<source>/public/* apps/web/public/ || true
-   if [ -d ~/code/<source>/content ]; then cp -R ~/code/<source>/content apps/web/content; fi
+   cp -R /tmp/<source>/public/* apps/web/public/ || true
+   if [ -d /tmp/<source>/content ]; then cp -R /tmp/<source>/content apps/web/content; fi
    ```
 
-2. **Automate App-Specific CSS & Vue merges:**
-   You should use your file editing tools to automatically implement these updates:
-   - Read `~/code/<source>/app/assets/css/main.css` and merge ONLY the app-specific `@theme` tokens or custom utilities into `apps/web/app/assets/css/main.css`.
-   - Read `~/code/<source>/app/app.vue` and copy any app-specific global providers or schema setup into `apps/web/app/app.vue`.
-3. **Copy app-specific server code & migrations:**
+   Then **immediately delete** any layer-provided files that were copied (see Phase 1a checklist).
+
+2. **Automate App-Specific CSS merge:**
+   - Compare `/tmp/<source>/app/assets/css/main.css` with `layers/narduk-nuxt-layer/app/assets/css/main.css`.
+   - The layer provides the base CSS (tailwind imports, `@theme` fonts, glassmorphism, form layout, page transitions). These are typically the first ~176 lines.
+   - Extract **only the app-specific CSS** (custom keyframes, component styles, game/app-specific classes) into a new `apps/web/app/assets/css/main.css`.
+   - Add `css: ['~/assets/css/main.css']` to `apps/web/nuxt.config.ts` to load the app-specific styles.
+   - **Do NOT** duplicate the tailwind/nuxt-ui imports or `@theme` block — the layer handles those.
+
+3. **Automate App-Specific `app.vue` merge:**
+   - The template's `app.vue` uses this canonical structure — **do not delete it**:
+     ```vue
+     <template>
+       <UApp>
+         <NuxtLayout>
+           <NuxtPage />
+         </NuxtLayout>
+       </UApp>
+     </template>
+     ```
+   - Copy any app-specific `<style>` blocks (CSS custom properties, global overrides) from the source `app.vue` into the template's `app.vue`.
+   - Copy any `<script setup>` logic (global providers, schema setup) into the template's `app.vue`.
+   - **Do NOT** remove `<UApp>`, `<NuxtLayout>`, or `<NuxtPage>` — these are required.
+
+4. **Copy app-specific server code & migrations:**
 
    ```bash
-   cp -R ~/code/<source>/server/api/* apps/web/server/api/ || true
-   cp ~/code/<source>/drizzle/*.sql apps/web/drizzle/ || true
+   cp -R /tmp/<source>/server/api/* apps/web/server/api/ || true
+   cp /tmp/<source>/drizzle/*.sql apps/web/drizzle/ || true
    ```
 
-   - **Automate Schema Merge**: Read `~/code/<source>/server/database/schema.ts` and merge any custom tables into `apps/web/server/database/schema.ts` using your code editing tools.
+   Then **delete** any layer-provided server files that were copied (health.get.ts, indexnow/\*, etc.).
+   - **Automate Schema Merge**: Read `/tmp/<source>/server/database/schema.ts` and merge any custom tables into `apps/web/server/database/schema.ts` using your code editing tools. The template's schema already re-exports the layer's base tables via `export * from '#layer/server/database/schema'`.
 
 ---
 
@@ -145,13 +177,14 @@ The new `nuxt.config.ts` must be **slim**.
 
 ### 3b. `apps/web/package.json`
 
-Remove all UI, formatting, and layer dependencies (`@nuxt/ui`, `drizzle-orm`, `tailwindcss`, ESLint plugins, etc.). The new package.json should be extremely simple:
+Remove all UI, formatting, and layer dependencies (`@nuxt/ui`, `drizzle-orm`, `tailwindcss`, ESLint plugins, etc.). The init script already creates a slim package.json with `nuxt`, `zod`, and `@narduk/eslint-config`. Only add strictly app-specific dependencies:
 
 ```json
 {
   "dependencies": {
     "@narduk/eslint-config": "workspace:*",
-    "nuxt": "^4.3.1"
+    "nuxt": "^4.3.1",
+    "zod": "^4.3.6"
     // + any strictly app-specific deps (e.g., "cheerio")
   },
   "devDependencies": {
@@ -205,8 +238,8 @@ Add any `r2_buckets` bindings if the source app had them.
    _(Ensure you update `pnpm-workspace.yaml` if it had explicit references, though `apps/_` glob usually handles this).\*
 3. **Delete Leftovers:**
    ```bash
-   find ~/code/<source>/<project-name>-v2/apps/web -name "*.bak" -delete
-   find ~/code/<source>/<project-name>-v2/apps/web -name ".DS_Store" -delete
+   find /tmp/<project-name>-v2/apps/web -name "*.bak" -delete
+   find /tmp/<project-name>-v2/apps/web -name ".DS_Store" -delete
    ```
 
 ---
@@ -215,21 +248,21 @@ Add any `r2_buckets` bindings if the source app had them.
 
 1. Install, clean, and build plugins:
    ```bash
-   cd ~/code/<source>/<project-name>-v2
+   cd /tmp/<project-name>-v2
    pnpm install
    rm -rf apps/web/.nuxt apps/web/.output
    pnpm run build:plugins
    ```
-2. Start the dev server:
-   ```bash
-   pnpm run dev
-   ```
-   _Verify the app compiles, pages render, and the layer merges correctly._
-3. Run quality checks:
+2. Run quality checks:
    ```bash
    pnpm run quality
    ```
-   _Fix any lint or type errors._
+   _Fix any lint or type errors until this passes cleanly._
+3. Start the dev server:
+   ```bash
+   pnpm run dev
+   ```
+   _Ask the user to verify the app compiles, pages render, and the layer merges correctly._
 4. Seed the database (if applicable):
    ```bash
    pnpm --filter web run db:migrate
@@ -264,28 +297,27 @@ Run the quality agent slash commands to validate the final state:
 
 ## Phase 7: Finalize Directory Structure and Review
 
-Once the migration is fully verified and the new monorepo app is working as expected in the local subdirectory, elevate it to be the main project and remove the old one.
+Once the migration is fully verified and the new monorepo app is working as expected, move it to `~/code` and archive the old repo.
 
-1. **Rename the old directory and move the new one to `~/code`:**
+1. **Move the old repo to graveyard and the new one to `~/code`:**
 
    ```bash
-   cd ~/code
-   mv ~/code/<source> ~/code/<source>-old
-   mv ~/code/<source>-old/<project-name>-v2 ~/code/<project-name>-v2
-   cd ~/code/<project-name>-v2
+   mv ~/code/<source> ~/old-code/graveyard/
+   mv /tmp/<project-name>-v2 ~/code/<project-name>
    ```
 
 2. **Final Quality Review:**
 
    ```bash
+   cd ~/code/<project-name>
    pnpm run quality
    ```
 
    _Take a moment to perform one final, thorough review of the app to ensure everything functions perfectly in its new location._
 
-3. **Delete the old directory:**
+3. **Clean up /tmp:**
    ```bash
-   rm -rf ~/code/<source>-old
+   rm -rf /tmp/<source>
    ```
 
 ---
