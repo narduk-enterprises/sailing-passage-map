@@ -1,6 +1,6 @@
 {
   "name": "@loganrenz/nuxt-v4-template-layer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Narduk Nuxt 4 Layer — shared components, composables, server routes, and Drizzle schema for Cloudflare Workers apps",
   "repository": {
@@ -67,6 +67,9 @@
     ".": {
       "import": "./nuxt.config.ts"
     },
+    "./server/*": "./server/*",
+    "./app/*": "./app/*",
+    "./components/*": "./components/*",
     "./server/database/schema": {
       "import": "./server/database/schema.ts"
     },
