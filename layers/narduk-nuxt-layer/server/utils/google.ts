@@ -26,7 +26,11 @@ async function getAccessToken(scopes: string[]): Promise<string> {
     throw new Error('GSC_SERVICE_ACCOUNT_JSON not configured — set googleServiceAccountKey in runtimeConfig')
   }
 
-  const sa = JSON.parse(saKeyJson) as { client_email: string; private_key: string }
+  // Doppler may store the service account JSON as base64-encoded
+  const decoded = saKeyJson.trim().startsWith('{')
+    ? saKeyJson
+    : atob(saKeyJson)
+  const sa = JSON.parse(decoded) as { client_email: string; private_key: string }
   const privateKey = await importPKCS8(sa.private_key, 'RS256')
 
   const now = Math.floor(Date.now() / 1000)
