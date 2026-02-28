@@ -7,7 +7,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "db:migrate": "wrangler d1 execute nuxt-v4-template-db --local --file=drizzle/0000_initial_schema.sql",
-    "db:seed": "wrangler d1 execute nuxt-v4-template-db --local --file=../../layers/narduk-nuxt-layer/drizzle/seed.sql",
+    "db:seed": "wrangler d1 execute nuxt-v4-template-db --local --file=node_modules/@loganrenz/nuxt-v4-template-layer/drizzle/seed.sql",
     "db:studio": "drizzle-kit studio",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@narduk/eslint-config": "workspace:*",
+    "@loganrenz/nuxt-v4-template-layer": "^1.0.0",
     "nuxt": "^4.3.1"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  // Extend the Workspace Nuxt Layer
-  extends: ['../../layers/narduk-nuxt-layer'],
+  // Extend the published Narduk Nuxt Layer
+  extends: ['@loganrenz/nuxt-v4-template-layer'],
 
   runtimeConfig: {
     // Server-only (admin API routes)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const colorMode = useColorMode()
+const appName = String((useRuntimeConfig().public as any).appName || '')
 
 const isDark = computed({
   get: () => colorMode.value === 'dark',
@@ -34,7 +35,7 @@ watch(route, () => {
             <div class="size-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm">
               N4
             </div>
-            <span class="font-display font-semibold text-lg hidden sm:block">Nuxt 4 Demo</span>
+            <span class="font-display font-semibold text-lg hidden sm:block">{{ appName || 'Nuxt 4 Demo' }}</span>
           </NuxtLink>
 
           <!-- Desktop nav -->
@@ -99,7 +100,7 @@ watch(route, () => {
       <div class="border-t border-default py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p class="text-center text-sm text-muted">
-            Nuxt 4 Demo Template &middot; Nuxt UI 4 &middot; Cloudflare Workers &middot; {{ new Date().getFullYear() }}
+            {{ appName || 'Nuxt 4 Demo' }} &middot; Nuxt UI 4 &middot; Cloudflare Workers &middot; {{ new Date().getFullYear() }}
           </p>
         </div>
       </div>

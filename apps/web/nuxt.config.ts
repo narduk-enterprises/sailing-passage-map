@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  // Point to the new local Layer
-  extends: ['../../layers/narduk-nuxt-layer'],
+  // Extend the published Narduk Nuxt Layer
+  extends: ['@loganrenz/nuxt-v4-template-layer'],
 
   future: {
     compatibilityVersion: 4

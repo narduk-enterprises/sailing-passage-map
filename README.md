@@ -7,7 +7,7 @@
 
 Built exclusively for the edge. This template combines the power of **Nuxt 4**, the aesthetics of **Nuxt UI 4 (Tailwind CSS 4)**, and the global low-latency of **Cloudflare Workers** with **D1 SQLite databases**.
 
-> **⚠️ ARCHITECTURE UPDATE:** This repository is now a **PNPM Workspace Monorepo**. The application lives in `apps/web/` and extends the local layer inside `layers/narduk-nuxt-layer/`. This allows you to rapidly iterate on both the app and the shared library simultaneously.
+> **⚠️ ARCHITECTURE UPDATE:** This repository is a **PNPM Workspace Monorepo**. The application lives in `apps/web/` and consumes the published **`@loganrenz/nuxt-v4-template-layer`** npm package. Upstream fixes are received via `pnpm update @loganrenz/nuxt-v4-template-layer`.
 
 > **Looking for examples?** Check out the companion repo **[`nuxt-v4-template-examples`](https://github.com/loganrenz/nuxt-v4-template-examples)** for full-featured implementations of auth, analytics, blog, dashboard layouts, and more.
 
@@ -106,13 +106,20 @@ apps/
   web/                 # The main Nuxt 4 application
     app/               # App UI (pages, components, layouts)
     server/            # Edge API endpoints and D1 database handling
-    nuxt.config.ts     # Extends the local layer
+    nuxt.config.ts     # Extends @loganrenz/nuxt-v4-template-layer
     package.json
-layers/
-  narduk-nuxt-layer/   # The centralized business logic and UI layer
+packages/
+  eslint-config/       # Workspace ESLint plugins
+node_modules/
+  @loganrenz/nuxt-v4-template-layer/  # Published layer (versioned, updatable)
     app/               # Shared components, composables, plugins, types
     server/            # Centralized API logic and database schemas
-    nuxt.config.ts
+```
+
+### Updating the Layer
+
+```bash
+pnpm update @loganrenz/nuxt-v4-template-layer
 ```
 
 ---

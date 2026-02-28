@@ -1,8 +1,16 @@
 {
-  "name": "narduk-nuxt-layer",
+  "name": "@loganrenz/nuxt-v4-template-layer",
   "version": "1.0.0",
   "type": "module",
-  "private": true,
+  "description": "Narduk Nuxt 4 Layer — shared components, composables, server routes, and Drizzle schema for Cloudflare Workers apps",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loganrenz/narduk-nuxt-layer.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -17,7 +25,6 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@narduk/eslint-config": "workspace:*",
     "@nuxt/eslint": "^1.15.2",
     "@nuxt/fonts": "^0.14.0",
     "@nuxt/image": "^2.0.0",
@@ -29,6 +36,14 @@
     "posthog-js": "^1.205.0",
     "tailwindcss": "^4.2.1",
     "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "@narduk/eslint-config": "*"
+  },
+  "peerDependenciesMeta": {
+    "@narduk/eslint-config": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250620.0",
@@ -48,6 +63,15 @@
     "@cloudflare/unenv-preset": "2.12.1",
     "vite": "npm:rolldown-vite@latest"
   },
+  "files": [
+    "app/",
+    "components/",
+    "server/",
+    "drizzle/",
+    "nuxt.config.ts",
+    "tsconfig.json",
+    "drizzle.config.ts"
+  ],
   "volta": {
     "node": "22.22.0"
   }

@@ -14,14 +14,14 @@
 
 This is a **minimal Nuxt 4 + Nuxt UI 4** boilerplate deployed to **Cloudflare Workers** with **D1 SQLite** (Drizzle ORM).
 
-> **⚠️ ARCHITECTURE UPDATE:** This repository is now a **PNPM Workspace Monorepo**. The application lives in `apps/web/` and extends the local layer inside `layers/narduk-nuxt-layer/`. This allows you to rapidly iterate on both the app and the shared library simultaneously.
+> **⚠️ ARCHITECTURE UPDATE:** This repository is a **PNPM Workspace Monorepo**. The application lives in `apps/web/` and consumes the published **`@loganrenz/nuxt-v4-template-layer`** npm package. This decouples the shared layer from the app, enabling downstream projects to receive upstream fixes via `pnpm update @loganrenz/nuxt-v4-template-layer`.
 > When building an app using this template, DO NOT recreate standard Nuxt UI components. Rely on the inherited layer.
 
 For full-featured example implementations (auth, analytics, blog, dashboard, forms, etc.), see the companion app in **`apps/examples/`**.
 
 ## Project Structure (PNPM Workspace)
 
-This repository functions as a single **PNPM Workspace** managing both the web application and the shared layer.
+This repository functions as a single **PNPM Workspace** managing the web application and supporting packages. The shared layer is consumed as an npm dependency.
 
 ```
 pnpm-workspace.yaml    # Workspace root config
@@ -32,16 +32,25 @@ apps/
   web/                 # The main Nuxt 4 application
     app/               # App UI (pages, components, layouts)
     server/            # Edge API endpoints and D1 database handling
-    nuxt.config.ts     # Extends the local layer
+    nuxt.config.ts     # Extends @loganrenz/nuxt-v4-template-layer
     package.json
-layers/
-  narduk-nuxt-layer/   # The centralized business logic and UI layer
+packages/
+  eslint-config/       # Workspace ESLint plugins
+node_modules/
+  @loganrenz/nuxt-v4-template-layer/  # Published layer (versioned, updatable via pnpm update)
     app/               # Shared components, composables, plugins, types
     server/            # Centralized API logic and database schemas
-    nuxt.config.ts
 ```
 
 _Note: You can still create `app/components/`, `server/api/`, etc., in `apps/web/`, but ensure you aren't duplicating something that already exists in the Layer._
+
+### Updating the Layer
+
+To pull the latest layer fixes and features:
+
+```bash
+pnpm update @loganrenz/nuxt-v4-template-layer
+```
 
 ## Hard Constraints (Cloudflare Workers)
 

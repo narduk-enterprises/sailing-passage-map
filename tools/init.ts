@@ -60,13 +60,13 @@ let REPAIR_MODE = !!args.repair
 
 // Boilerplate targets to replace
 // Order matters: more-specific patterns must come before less-specific ones
+// Note: "Nuxt 4 Demo" display name is NOT replaced here — the layer reads
+// `runtimeConfig.public.appName` (set by APP_NAME env var via Doppler) at runtime.
 const REPLACEMENTS = [
   { from: /nuxt-v4-template-examples-db/g, to: `${APP_NAME}-examples-db` },
   { from: /nuxt-v4-template-examples/g, to: `${APP_NAME}-examples` },
   { from: /nuxt-v4-template-db/g, to: `${APP_NAME}-db` },
   { from: /nuxt-v4-template/g, to: APP_NAME },
-  { from: /Nuxt 4 Demo Examples/g, to: `${DISPLAY_NAME} Examples` },
-  { from: /Nuxt 4 Demo/g, to: DISPLAY_NAME },
   { from: /https:\/\/nuxt-v4-template\.workers\.dev/g, to: SITE_URL }
 ]
 
