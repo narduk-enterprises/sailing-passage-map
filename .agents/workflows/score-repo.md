@@ -1,10 +1,10 @@
 ---
-description: Full repository architecture audit — scores 14 categories out of 10 with findings and recommendations
+description: Full repository architecture audit — scores 19 categories out of 10 with findings and recommendations
 ---
 
 # Repository Architecture Scorecard
 
-This workflow performs a comprehensive architecture audit of the monorepo and produces a scored report across 14 categories. Each category is scored 1-10 with specific findings and recommendations.
+This workflow performs a comprehensive architecture audit of the monorepo and produces a scored report across 19 categories. Each category is scored 1-10 with specific findings and recommendations.
 
 ## 1. Monorepo Structure (Target: 10/10)
 
@@ -452,6 +452,203 @@ Audit for deprecated Nuxt UI syntax, old v2/v3 patterns, and common Nuxt UI v4 m
     - Having both `@nuxt/ui` and `@nuxt/ui-pro` causes module resolution conflicts and duplicate Vue instances
 
 **Scoring:** 10 = all checks pass. -1 for each: deprecated component name, old prop syntax, legacy CSS import, wrong import order, legacy color tokens, `@apply` with semantic classes, stale model modifiers, old utility paths, unguarded refresh handler, duplicate ui-pro dependency.
+
+## 15. Accessibility (Target: 10/10)
+
+Audit for WCAG AA compliance and keyboard/screen-reader usability.
+
+1. **Image alt text**
+   // turbo
+   - Run `grep -rn '<img\|<NuxtImg\|<NuxtPicture' apps/ layers/ --include='*.vue' | grep -v 'node_modules\|alt=' | head -15`
+   - Every `<img>`, `<NuxtImg>`, and `<NuxtPicture>` must have an `alt` attribute (empty `alt=""` for decorative)
+
+2. **Interactive element labels**
+   // turbo
+   - Run `grep -rn '<button\|<UButton\|<a ' apps/ layers/ --include='*.vue' | grep -v 'node_modules\|aria-label\|aria-describedby' | grep 'icon\|:icon' | head -15`
+   - Icon-only buttons/links must have `aria-label` or visually-hidden text
+   - Form inputs must be associated with `<label>` or `aria-label`
+
+3. **Heading hierarchy**
+   // turbo
+   - Run `grep -rn '<h1' apps/ layers/ --include='*.vue' | grep -v 'node_modules' | head -15`
+   - Each page should have exactly one `<h1>`, no skipped heading levels (h1→h3 with no h2)
+
+4. **Keyboard navigation**
+   - Interactive modals/dropdowns must trap focus and respond to Escape
+   - Skip-to-content link should exist in the main layout
+     // turbo
+   - Run `grep -rn 'skip-to\|skipnav\|skip-nav\|tabindex' layers/ apps/ --include='*.vue' | grep -v 'node_modules' | head -10`
+
+5. **Color contrast**
+   - `text-muted` class must maintain 4.5:1 contrast ratio against backgrounds
+   - Error/success states should not communicate via color alone (add icons)
+     // turbo
+   - Run `grep -rn 'text-muted' layers/ apps/ --include='*.vue' | grep -v 'node_modules' | wc -l`
+
+6. **ARIA roles on custom widgets**
+   // turbo
+   - Run `grep -rn 'role=\|aria-' apps/ layers/ --include='*.vue' | grep -v 'node_modules\|aria-hidden' | head -15`
+   - Custom interactive widgets (tabs, accordions, carousels) need proper `role`, `aria-expanded`, `aria-selected`
+
+**Scoring:** 10 = all checks pass. -1 for each: missing alt text, unlabeled icon buttons, broken heading hierarchy, no skip link, questionable contrast, missing ARIA roles.
+
+---
+
+## 16. Performance & Bundle Optimization (Target: 10/10)
+
+Audit for fast cold starts, minimal bundle size, and optimized asset delivery.
+
+1. **Unused dependencies**
+   // turbo
+   - Run `npx depcheck layers/narduk-nuxt-layer --ignores='@types/*,@cloudflare/*,@narduk/*,@tailwindcss/*,eslint,prettier,typescript,vue-tsc,wrangler,drizzle-kit,nuxt,postcss' 2>/dev/null | head -20`
+   - Installed packages that are never imported add to install time and lockfile size
+
+2. **Lazy-loaded components**
+   // turbo
+   - Run `grep -rn 'defineAsyncComponent\|<Lazy' apps/ layers/ --include='*.vue' --include='*.ts' | grep -v 'node_modules' | head -10`
+   - Heavy components (modals, charts, maps) should use `<LazyXxx>` or `defineAsyncComponent`
+
+3. **Image optimization**
+   // turbo
+   - Run `grep -rn '<img ' apps/ layers/ --include='*.vue' | grep -v 'node_modules\|NuxtImg\|NuxtPicture' | head -15`
+   - Raw `<img>` tags bypass Cloudflare image optimization — use `<NuxtImg>` or `<NuxtPicture>` instead
+
+4. **Font loading strategy**
+   // turbo
+   - Run `grep -rn 'fonts\|@nuxt/fonts' layers/narduk-nuxt-layer/nuxt.config.ts | head -5`
+   - Must use `@nuxt/fonts` (automatic optimization) — no manual `@import url()` in CSS
+   - Verify the CSS comment confirms this: `/* Fonts are handled by @nuxt/fonts */`
+
+5. **Bundle analysis capability**
+   - Check for `analyze` script or `vite-plugin-inspect` for debugging bundle issues
+     // turbo
+   - Run `grep -rn 'analyze\|vite-plugin-inspect' apps/ layers/ --include='package.json' --include='nuxt.config.ts' | grep -v 'node_modules' | head -5`
+
+6. **Large dependency audit**
+   // turbo
+   - Run `grep -rn 'lodash\|moment\|dayjs\|axios' apps/ layers/ --include='package.json' | grep -v 'node_modules' | head -10`
+   - `lodash` (use native JS), `moment` (use Intl), `axios` (use `$fetch`) are unnecessary in modern Nuxt
+
+**Scoring:** 10 = all checks pass. -1 for each: unused deps, raw `<img>` tags, no @nuxt/fonts, manual font imports, large unnecessary dependencies, no lazy-loading.
+
+---
+
+## 17. Error Handling & Resilience (Target: 10/10)
+
+Audit for graceful failure modes, consistent error shapes, and user-facing error pages.
+
+1. **Global error page**
+   // turbo
+   - Run `find layers/ apps/ -name 'error.vue' -not -path '*/node_modules/*' | head -10`
+   - `error.vue` must exist and handle both 404 and 500 gracefully
+   - Must render a user-friendly page (not raw JSON or a blank screen)
+
+2. **API error consistency**
+   // turbo
+   - Run `grep -rn 'createError(' apps/ layers/ --include='*.ts' -l | grep -v 'node_modules\|.test.' | head -15`
+   - All API routes must use `createError({ statusCode, message })` — no raw `throw new Error()`
+     // turbo
+   - Run `grep -rn 'throw new Error' apps/ layers/ --include='*.ts' | grep -v 'node_modules\|.test.\|.spec.\|utils/\|middleware/' | head -10`
+   - API routes should NOT use `throw new Error()` (loses statusCode)
+
+3. **Frontend error states**
+   // turbo
+   - Run `grep -rn 'error\.' apps/ layers/ --include='*.vue' | grep -v 'node_modules\|error.vue\|console.error\|.d.ts' | head -15`
+   - Pages using `useAsyncData` should destructure and handle `{ error }` in templates
+   - Display user-friendly messages, not raw error objects
+
+4. **Unhandled rejections in API routes**
+   // turbo
+   - Run `grep -rn 'async.*defineEventHandler' apps/ layers/ --include='*.ts' | grep -v 'node_modules\|middleware' | head -15`
+   - API routes with async handlers should have explicit error handling or rely on H3's built-in catch
+   - Check for routes doing multiple DB operations without try/catch
+
+5. **D1 unavailability fallback**
+   - `useDatabase()` must throw a descriptive 500 error when D1 is not bound
+   - API routes should not crash with cryptic errors when DB is missing
+
+**Scoring:** 10 = all checks pass. -1 for each: missing error.vue, raw `throw new Error()` in API routes, no error state handling in templates, unclear D1 error messages.
+
+---
+
+## 18. Dependency Hygiene (Target: 10/10)
+
+Audit for up-to-date, secure, and minimal dependency tree.
+
+1. **Known vulnerabilities**
+   // turbo
+   - Run `pnpm audit --audit-level moderate 2>&1 | tail -5`
+   - There should be zero high/critical vulnerabilities
+
+2. **Peer dependency warnings**
+   // turbo
+   - Run `pnpm install --frozen-lockfile 2>&1 | grep 'unmet peer' | wc -l`
+   - Unmet peer dependencies cause runtime inconsistencies — aim for zero
+
+3. **Duplicate packages**
+   // turbo
+   - Run `pnpm dedupe --check 2>&1 | tail -5`
+   - Duplicate versions of the same package inflate bundle size
+
+4. **Version consistency across workspace**
+   // turbo
+   - Run `grep -rn '"nuxt":' apps/ layers/ --include='package.json' | grep -v 'node_modules' | head -10`
+   - Core shared deps (nuxt, @nuxt/ui, tailwindcss) should be the same version across all workspace members
+
+5. **Lockfile freshness**
+   // turbo
+   - Run `git diff --name-only HEAD~5 -- pnpm-lock.yaml | wc -l`
+   - Lockfile should be updated regularly (at least within last 5 commits if deps changed)
+
+6. **No floating versions for critical deps**
+   // turbo
+   - Run `grep -rn '"@nuxt/ui":\|"nuxt":\|"tailwindcss":' apps/ layers/ --include='package.json' | grep -v 'node_modules' | head -15`
+   - Critical framework dependencies should use exact or tilde versions, not `*` or `latest`
+
+**Scoring:** 10 = all checks pass. -1 for each: critical vulnerability, 5+ unmet peers, duplicate deps, version inconsistency, floating critical dep.
+
+---
+
+## 19. Type Safety Depth (Target: 10/10)
+
+Audit for strict TypeScript usage beyond the linter — catching real type holes.
+
+1. **Strict mode**
+   // turbo
+   - Run `grep -rn '"strict"' apps/ layers/ --include='tsconfig.json' | grep -v 'node_modules' | head -10`
+   - All `tsconfig.json` files should have `"strict": true` (Nuxt 4 sets this by default)
+
+2. **Suppression comments**
+   // turbo
+   - Run `grep -rn '@ts-ignore\|@ts-expect-error\|@ts-nocheck' apps/ layers/ --include='*.ts' --include='*.vue' | grep -v 'node_modules\|.d.ts' | head -15`
+   - Each `@ts-ignore` / `@ts-expect-error` must have an explanatory comment
+   - `@ts-nocheck` should never be used in production code
+
+3. **Type assertions**
+   // turbo
+   - Run `grep -rn ' as ' apps/ layers/ --include='*.ts' --include='*.vue' | grep -v 'node_modules\|.d.ts\|.test.\|.spec.\|import ' | head -20`
+   - Excessive `as` assertions indicate type holes — prefer type narrowing or generics
+   - Flag `as any` specifically
+
+4. **Untyped API responses**
+   // turbo
+   - Run `grep -rn 'useFetch\|useAsyncData' apps/ layers/ --include='*.vue' --include='*.ts' | grep -v 'node_modules\|.test.' | head -15`
+   - `useFetch<T>()` and `useAsyncData<T>()` should have explicit type parameters when the API doesn't auto-infer
+
+5. **Zod validation on API inputs**
+   // turbo
+   - Run `grep -rn 'readBody\|getQuery\|getRouterParam' apps/ layers/ --include='*.ts' | grep -v 'node_modules\|.test.' | head -15`
+   - All `readBody()`, `getQuery()`, and `getRouterParam()` calls should be validated with Zod
+     // turbo
+   - Run `grep -rn 'z\.object\|z\.string\|z\.number' apps/ layers/ --include='*.ts' | grep -v 'node_modules\|.test.' | head -15`
+   - Compare: routes reading user input should have a corresponding Zod parse
+
+6. **No `any` in function signatures**
+   // turbo
+   - Run `grep -rn ': any\b\|: any,' apps/ layers/ --include='*.ts' | grep -v 'node_modules\|.d.ts\|.test.\|.spec.\|eslint' | head -15`
+   - Function parameters and return types should avoid explicit `any`
+
+**Scoring:** 10 = all checks pass. -1 for each: non-strict tsconfig, uncommented @ts-ignore, `as any` cast, untyped useFetch, unvalidated readBody, `any` in function signatures.
 
 ---
 
