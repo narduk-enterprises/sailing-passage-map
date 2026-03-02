@@ -31,13 +31,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: node_modules/.cache/turbo
-          key: turbo-quality-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-quality-${{ runner.os }}-
-
       - name: Prepare Nuxt types
         run: |
           for cfg in apps/*/nuxt.config.ts layers/*/nuxt.config.ts; do
@@ -81,27 +74,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: node_modules/.cache/turbo
-          key: turbo-build-${{ matrix.app }}-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-build-${{ matrix.app }}-${{ runner.os }}-
-
       - name: Build
         env:
           NITRO_PRESET: cloudflare-module
-        run: pnpm exec turbo run build --filter=${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm build
 
-      - name: Upload build artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.app }}
-          path: apps/${{ matrix.app }}/.output
-          retention-days: 1
-
-  # ── Deploy (only on push to main, after build passes) ──
+  # ── Deploy (only on push to main, after builds pass) ──
   deploy:
     name: Deploy
     needs: [build]
@@ -142,12 +121,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-web
-          path: apps/web/.output
-
       - name: Fetch secrets from Doppler
         if: steps.creds.outputs.method == 'doppler'
         uses: dopplerhq/secrets-fetch-action@v1.3.1
@@ -174,15 +147,15 @@ jobs:
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing Cloudflare credentials: ${missing[*]}"
             if [ "$DEPLOY_METHOD" = "doppler" ]; then
-              echo ""
-              echo "Doppler connected but Cloudflare tokens are missing from the spoke project."
+              echo "Doppler connected but Cloudflare tokens missing from spoke project."
               echo "Fix: doppler secrets set CLOUDFLARE_API_TOKEN='\${narduk-enterprise-apps.prd.CLOUDFLARE_API_TOKEN}' --config prd"
-              echo "     doppler secrets set CLOUDFLARE_ACCOUNT_ID='\${narduk-enterprise-apps.prd.CLOUDFLARE_ACCOUNT_ID}' --config prd"
             fi
             exit 1
           fi
           echo "✓ Cloudflare credentials validated"
 
-      - name: Deploy to Cloudflare Workers
+      - name: Build & Deploy
         working-directory: apps/web
-        run: pnpm exec wrangler deploy
+        run: |
+          pnpm build
+          pnpm exec wrangler deploy
