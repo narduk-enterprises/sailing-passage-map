@@ -217,7 +217,7 @@ Follow these steps **in order** — the init script handles renaming, D1 provisi
 2. Install: `pnpm install`
 3. **Run the init script** (renames everything, provisions D1, creates Doppler project):
    ```bash
-   pnpm setup -- --name="your-app-name" --display="Your Display Name" --url="https://yoururl.com"
+   pnpm init -- --name="your-app-name" --display="Your Display Name" --url="https://yoururl.com"
    ```
 4. Wire up Doppler locally: `doppler setup --project your-app-name --config dev`
 5. Start dev: `doppler run -- pnpm run dev`
@@ -307,7 +307,7 @@ These are opt-in feature recipes. Follow them when the project needs a specific 
 
 1. Run the mass-replacer script from the root directory:
    ```bash
-   pnpm setup -- --name="your-app-name" --display="Your Display Name" --url="https://yoururl.com"
+   pnpm init -- --name="your-app-name" --display="Your Display Name" --url="https://yoururl.com"
    ```
    _(This will rename the project, create the Cloudflare D1 database, spin up the Doppler project, and rewrite `wrangler.json`.)_
 2. Configure your Doppler secrets (see Secrets & Env below).
@@ -348,7 +348,7 @@ These are opt-in feature recipes. Follow them when the project needs a specific 
    - `site.name` — change to your app's name
    - `site.description` — change to your app's description
    - `schemaOrg.identity.name` — match your app name
-     > _Note: If you ran `pnpm setup` with `--display`, these values were already replaced automatically._
+     > _Note: If you ran `pnpm init` with `--display`, these values were already replaced automatically._
 
 6. **Replace `apps/web/app/pages/index.vue`** — this is a placeholder landing page. Build your actual homepage.
 

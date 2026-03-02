@@ -10,10 +10,10 @@ import { fileURLToPath } from 'node:url'
  * Safe to re-run — all steps check for existing state before making changes.
  * 
  * Usage:
- *   pnpm setup -- --name="my-app" --display="My App Name" --url="https://myapp.com"
+ *   pnpm init -- --name="my-app" --display="My App Name" --url="https://myapp.com"
  * 
  * Re-run (repair mode — skip string replacement and README):
- *   pnpm setup -- --name="my-app" --display="My App Name" --url="https://myapp.com" --repair
+ *   pnpm init -- --name="my-app" --display="My App Name" --url="https://myapp.com" --repair
  * 
  * What this does:
  * 1. Safely finds and replaces all boilerplate strings (skipped in --repair mode)
@@ -71,7 +71,13 @@ if (!/^[a-z0-9][a-z0-9-]*$/.test(APP_NAME)) {
 // schemaOrg.identity.name, runtimeConfig fallback) and generate-favicons.mjs. The layer's
 // app.vue reads runtimeConfig.public.appName at runtime, but these build-time values also
 // need to be replaced so SEO metadata matches the project from the first deploy.
+// The layer's scoped package name must NEVER be replaced — it's a stable
+// published identity shared across all consuming apps. We match it first
+// (identity replacement) so the generic `narduk-nuxt-template` pattern below
+// cannot corrupt it.
+const LAYER_PACKAGE = '@loganrenz/narduk-nuxt-template-layer'
 const REPLACEMENTS = [
+  { from: /@loganrenz\/narduk-nuxt-template-layer/g, to: LAYER_PACKAGE },
   { from: /narduk-nuxt-template-examples-db/g, to: `${APP_NAME}-examples-db` },
   { from: /narduk-nuxt-template-examples/g, to: `${APP_NAME}-examples` },
   { from: /narduk-nuxt-template-db/g, to: `${APP_NAME}-db` },

@@ -11,7 +11,7 @@
     "lint": "pnpm run prelint && turbo run lint",
     "typecheck": "turbo run typecheck",
     "quality": "turbo run quality",
-    "setup": "doppler run -- jiti tools/init.ts",
+    "init": "doppler run -- npx tsx tools/init.ts",
     "validate": "doppler run -- jiti tools/validate.ts",
     "clean": "find . -type d \\( -name node_modules -o -name .nuxt -o -name .output -o -name .nitro -o -name .wrangler -o -name .turbo -o -name .data -o -name dist \\) -not -path './.git/*' -prune -exec rm -rf {} +",
     "clean:install": "pnpm run clean && pnpm install && pnpm run db:ready:all",

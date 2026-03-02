@@ -61,7 +61,7 @@ description: Migrate a flat Nuxt 4 app into the monorepo when both the template 
 
    ```bash
    pnpm install
-   pnpm setup -- --name="<project-name>" --display="<Display Name>" --url="https://<domain>"
+   pnpm init -- --name="<project-name>" --display="<Display Name>" --url="https://<domain>"
    ```
 
 3. **Verify scaffold compiles:**
