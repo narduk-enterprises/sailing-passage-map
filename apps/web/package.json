@@ -20,9 +20,9 @@
   "dependencies": {
     "@loganrenz/narduk-nuxt-template-layer": "workspace:*",
     "@narduk/eslint-config": "workspace:*",
-    "drizzle-orm": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "nuxt": "^4.3.1",
-    "zod": "workspace:*"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
