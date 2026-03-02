@@ -4,13 +4,19 @@ description: Comprehensive SSR and Hydration safety audit — window access, isH
 
 This workflow performs a deep SSR and hydration safety audit. It ensures the application safely executes on the server without crashing and prevents common client-hydration mismatches.
 
+**ESLint (run first):** `nuxt-guardrails/no-ssr-dom-access` flags unguarded `window`/`document`; `nuxt-guardrails/no-raw-fetch` flags raw `$fetch`. `vue-official/no-composable-dom-access-without-client-guard` covers composables. Store serialization is enforced by `nuxt-guardrails/no-non-serializable-store-state`. Hydration-sensitive components (UNavigationMenu, UColorMode*) are enforced by `atx/require-client-only-hydration-sensitive`. Run `pnpm run lint` before manual checks below.
+
 1. **Check for `window` or `document` usage in setup**
    - Any access to `window` or `document` directly in `<script setup>` outside of lifecycle hooks (like `onMounted`) will cause SSR crashes.
+   - **Enforced by:** `nuxt-guardrails/no-ssr-dom-access`
+   - Optional manual check:
      // turbo
      `grep -rn "window\." app/ 2>/dev/null | grep -v "onMounted" || echo "No unsafe window access found (pass)"`
 
 2. **Verify data fetching patterns**
    - Ensure API calls during SSR are made using `useAsyncData` or `useFetch`. Raw `$fetch` calls in the setup block without wrapping them will execute twice (server and client), causing hydration mismatches.
+   - **Enforced by:** `nuxt-guardrails/no-raw-fetch`
+   - Optional manual check:
      // turbo
      `grep -rn "const .* = await \$fetch" app/ 2>/dev/null || echo "No unsafe raw $fetch found (pass)"`
 

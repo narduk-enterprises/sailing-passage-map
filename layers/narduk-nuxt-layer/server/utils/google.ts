@@ -9,6 +9,9 @@ export const GSC_SCOPES = [
 ]
 
 // ─── Token cache ────────────────────────────────────────────
+// INTENTIONAL module-scope cache: within a Worker isolate's lifetime, this avoids
+// redundant JWT exchanges with Google. The cache is scoped to a single isolate and
+// is NOT shared across Workers — it acts as a per-instance optimization, not global state.
 let cachedToken: { token: string; expiry: number } | null = null
 
 /**
@@ -21,7 +24,7 @@ async function getAccessToken(scopes: string[]): Promise<string> {
   }
 
   const config = useRuntimeConfig()
-  const saKeyJson = config.googleServiceAccountKey as string
+  const saKeyJson = config.googleServiceAccountKey
   if (!saKeyJson) {
     throw new Error('GSC_SERVICE_ACCOUNT_JSON not configured — set googleServiceAccountKey in runtimeConfig')
   }

@@ -38,7 +38,7 @@ Built exclusively for the edge. This template combines the power of **Nuxt 4**, 
 ### 1. Initial Setup
 
 ```bash
-git clone https://github.com/loganrenz/nuxt-v4-template-monorepo.git my-new-project
+git clone https://github.com/loganrenz/nuxt-v4-template.git my-new-project
 cd my-new-project
 pnpm install
 ```

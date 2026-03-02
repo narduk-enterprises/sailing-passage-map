@@ -13,7 +13,9 @@
     "build:vue-official": "cd eslint-plugin-vue-official-best-practices && pnpm run build",
     "lint": "echo 'eslint-config: lint pass (config-only package)'",
     "typecheck": "pnpm run build",
-    "quality": "pnpm run lint && pnpm run typecheck"
+    "quality": "pnpm run lint && pnpm run typecheck",
+    "test": "vitest run",
+    "test:plugins": "vitest run eslint-plugins/tests"
   },
   "dependencies": {
     "eslint-config-prettier": "^10.1.8",
@@ -28,6 +30,7 @@
     "@types/node": "^22.19.13",
     "eslint": "^10.0.2",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

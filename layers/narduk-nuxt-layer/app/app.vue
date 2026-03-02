@@ -1,12 +1,18 @@
 <script setup lang="ts">
 const route = useRoute()
 const colorMode = useColorMode()
-const appName = String((useRuntimeConfig().public as any).appName || '')
+const appName = useRuntimeConfig().public.appName || ''
 
-const isDark = computed({
-  get: () => colorMode.value === 'dark',
-  set: (val: boolean) => { colorMode.preference = val ? 'dark' : 'light' }
+const colorModeIcon = computed(() => {
+  if (colorMode.preference === 'system') return 'i-lucide-monitor'
+  return colorMode.value === 'dark' ? 'i-lucide-moon' : 'i-lucide-sun'
 })
+
+function cycleColorMode() {
+  const modes = ['system', 'light', 'dark'] as const
+  const idx = modes.indexOf(colorMode.preference as typeof modes[number])
+  colorMode.preference = modes[(idx + 1) % modes.length]!
+}
 
 const navItems = [
   { label: 'Home', to: '/', icon: 'i-lucide-home' },
@@ -54,11 +60,11 @@ watch(route, () => {
           </div>
 
           <div class="flex items-center gap-2">
-            <USwitch
-              v-model="isDark"
-              checked-icon="i-lucide-moon"
-              unchecked-icon="i-lucide-sun"
-              size="lg"
+            <UButton
+              :icon="colorModeIcon"
+              variant="ghost"
+              color="neutral"
+              @click="cycleColorMode"
             />
 
             <!-- Mobile hamburger -->
@@ -100,7 +106,7 @@ watch(route, () => {
       <div class="border-t border-default py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p class="text-center text-sm text-muted">
-            {{ appName || 'Nuxt 4 Demo' }} &middot; Nuxt UI 4 &middot; Cloudflare Workers &middot; {{ new Date().getFullYear() }}
+            {{ appName || 'Nuxt 4 Demo' }} &middot; Nuxt UI 4 &middot; Cloudflare Workers &middot; <NuxtTime :datetime="new Date()" year="numeric" />
           </p>
         </div>
       </div>

@@ -17,32 +17,49 @@ This is a **minimal Nuxt 4 + Nuxt UI 4** boilerplate deployed to **Cloudflare Wo
 > **⚠️ ARCHITECTURE UPDATE:** This repository is a **PNPM Workspace Monorepo**. The application lives in `apps/web/` and consumes the published **`@loganrenz/nuxt-v4-template-layer`** npm package. This decouples the shared layer from the app, enabling downstream projects to receive upstream fixes via `pnpm update @loganrenz/nuxt-v4-template-layer`.
 > When building an app using this template, DO NOT recreate standard Nuxt UI components. Rely on the inherited layer.
 
-For full-featured example implementations (auth, analytics, blog, dashboard, forms, etc.), see the companion app in **`apps/examples/`**.
+For full-featured example implementations, see the **Showcase** apps in `apps/showcase/`, `apps/example-auth/`, `apps/example-blog/`, `apps/example-marketing/`, and `apps/example-dashboard/`.
 
 ## Project Structure (PNPM Workspace)
 
-This repository functions as a single **PNPM Workspace** managing the web application and supporting packages. The shared layer is consumed as an npm dependency.
+This repository functions as a single **PNPM Workspace** managing the web application, showcase examples, and supporting packages. The shared layer is consumed as an npm dependency.
 
 ```
-pnpm-workspace.yaml    # Workspace root config
-package.json           # Global scripts (pnpm run dev, pnpm run quality)
-AGENTS.md              # Global AI coding guidelines
-.agents/               # Saved AI workflows
+pnpm-workspace.yaml        # Workspace root config
+package.json               # Global scripts (pnpm run dev, pnpm run quality)
+AGENTS.md                  # Global AI coding guidelines
+.agents/                   # Saved AI workflows
 apps/
-  web/                 # The main Nuxt 4 application
-    app/               # App UI (pages, components, layouts)
-    server/            # Edge API endpoints and D1 database handling
-    nuxt.config.ts     # Extends @loganrenz/nuxt-v4-template-layer
-    package.json
+  web/                     # The main Nuxt 4 application
+    app/                   # App UI (pages, components, layouts)
+    server/                # Edge API endpoints and D1 database handling
+    nuxt.config.ts         # Extends @loganrenz/nuxt-v4-template-layer
+  showcase/                # Landing page with links to each example app
+    app/pages/             # Hub page with example directory (opens apps in new tabs)
+  example-auth/            # Auth example (independent worker)
+  example-blog/            # Blog example (independent worker)
+  example-marketing/       # Marketing UI example (independent worker)
+  example-dashboard/       # Dashboard example (independent worker)
 packages/
-  eslint-config/       # Workspace ESLint plugins
+  eslint-config/           # Workspace ESLint plugins
 node_modules/
-  @loganrenz/nuxt-v4-template-layer/  # Published layer (versioned, updatable via pnpm update)
-    app/               # Shared components, composables, plugins, types
-    server/            # Centralized API logic and database schemas
+  @loganrenz/nuxt-v4-template-layer/  # Published layer (versioned, updatable)
+    app/                   # Shared components, composables, plugins, types
+    server/                # Centralized API logic and database schemas
 ```
 
 _Note: You can still create `app/components/`, `server/api/`, etc., in `apps/web/`, but ensure you aren't duplicating something that already exists in the Layer._
+
+### Showcase Architecture
+
+Each example app is a fully independent Cloudflare Worker with its own domain. The `apps/showcase/` app is a simple landing page that links to each example (opens in a new tab). There is no routing proxy or Service Bindings — each app is self-contained and can be developed and deployed independently.
+
+To add a new example app:
+
+1. Create `apps/example-<name>/` with its own `nuxt.config.ts` and `wrangler.json`
+2. Set the `EXAMPLE_<NAME>_URL` env var in the showcase's runtime config
+3. Add a card to `apps/showcase/app/pages/index.vue`
+
+**Dev and seed data:** Apps that use D1 (example-auth, example-blog, example-dashboard) run `db:ready` (migrate + seed) before `nuxt dev`, so the local D1 database is always created and populated with seed data when you start dev. From the repo root you can run `pnpm db:ready:showcase` once to prepare the shared showcase DB before `pnpm dev:showcase`.
 
 ### Updating the Layer
 
@@ -60,12 +77,62 @@ pnpm update @loganrenz/nuxt-v4-template-layer
 - **Drizzle ORM only** — no Prisma or other Node-dependent ORMs
 - All server code must be stateless across requests (edge isolate model)
 
+## Security & Protection
+
+The layer provides three security layers out of the box:
+
+### Rate Limiting (Two-Tier)
+
+**Tier 1 — Per-Isolate (built-in):** The layer includes `server/utils/rateLimit.ts`, a sliding-window rate limiter that runs in each Cloudflare Worker isolate's memory. Use it in API routes:
+
+```ts
+await enforceRateLimit(event, 'auth', 10, 60_000); // 10 requests/minute per IP
+```
+
+> **⚠️ Important:** This is per-isolate only — state is NOT shared across Workers. It protects against brute-force from a single client hitting the same isolate, but cannot enforce global limits.
+
+**Tier 2 — Global (Cloudflare dashboard):** For production, complement the per-isolate limiter with [Cloudflare Rate Limiting Rules](https://developers.cloudflare.com/waf/rate-limiting-rules/) configured in the Cloudflare dashboard or via Terraform. These enforce limits at the edge before your Worker is invoked.
+
+### CORS (API routes only)
+
+The layer includes `server/middleware/cors.ts`. By default, no CORS headers are sent (same-origin only). To allow cross-origin API access, set `corsAllowedOrigins` in `runtimeConfig`:
+
+```ts
+runtimeConfig: {
+  corsAllowedOrigins: 'https://app.example.com,https://admin.example.com',
+}
+```
+
+- Only applies to `/api/*` routes
+- Uses exact origin matching (no wildcards) for security
+- Handles preflight OPTIONS requests automatically
+- Sets `Vary: Origin` for proper caching
+
+### CSRF Protection
+
+The layer includes `server/middleware/csrf.ts` which blocks POST/PUT/PATCH/DELETE requests missing the `X-Requested-With` header. The client-side `fetch.client.ts` plugin automatically adds this header to all requests. Routes under `/api/webhooks/`, `/api/cron/`, and `/api/callbacks/` are excluded.
+
 ## Nuxt UI 4 Rules
 
 - `UDivider` → renamed to **`USeparator`** in v4
 - Icons use `i-` prefix: `i-lucide-home`, not `name="heroicons-..."`
 - Use design token colors (`primary`, `neutral`) not arbitrary color strings
 - Tailwind CSS 4 — configure via `@theme` in `main.css`, not `tailwind.config`
+
+## Design Tokens
+
+The layer provides semantic design tokens via `@theme` in `main.css`. Use these instead of hardcoded values:
+
+| Category    | Tokens                                                                                                               | Usage                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Typography  | `--font-sans`, `--font-display`                                                                                      | Body text and headings |
+| Shadows     | `--shadow-card`, `--shadow-elevated`, `--shadow-overlay`                                                             | Elevation hierarchy    |
+| Radius      | `--radius-card`, `--radius-button`, `--radius-badge`, `--radius-input`                                               | Consistent rounding    |
+| Transitions | `--transition-fast` (150ms), `--transition-base` (200ms), `--transition-slow` (300ms), `--transition-spring` (500ms) | Motion consistency     |
+
+**Colors** are managed by Nuxt UI via `app.config.ts` — use Tailwind utilities (`bg-primary`, `text-neutral-500`), never add color tokens to `@theme`.
+
+**Utility classes:** `.glass`, `.glass-card`, `.card-base`, `.shadow-card`, `.shadow-elevated`, `.shadow-overlay`, `.transition-fast`, `.transition-base`, `.transition-slow`. All classes are dark-mode-aware.
 
 ## SEO (Required on Every Page)
 
@@ -123,13 +190,13 @@ Run these during development (Antigravity slash-commands):
 
 ## ESLint Plugins (Automated Enforcement)
 
-These workspace-local ESLint plugins enforce patterns at lint time. Run `pnpm run build:plugins` after cloning to build the TypeScript plugins.
+These workspace-local ESLint plugins enforce patterns at lint time. Many checks from `.agents/workflows` (SEO, data-fetching, SSR/hydration, plugin lifecycle, UI styling, architecture) are now enforced by these plugins so issues are caught at edit time. Run `pnpm run build:plugins` after cloning to build the TypeScript plugins.
 
 | Plugin                                      | Rules | What It Enforces                                                                 |
 | ------------------------------------------- | ----- | -------------------------------------------------------------------------------- |
-| `eslint-plugin-nuxt-ui`                     | 7     | Nuxt UI v4 props, slots, events, variants, deprecated API usage                  |
-| `eslint-plugin-nuxt-guardrails`             | 7     | SSR DOM access, legacy head/fetch, `import.meta.client`, `useAsyncData`          |
-| `eslint-plugin-atx`                         | 24    | Design system: prefer UButton/ULink, no inline hex, Lucide icons, Zod validation |
+| `eslint-plugin-nuxt-ui`                     | 8     | Nuxt UI v4 props, slots, events, variants, deprecated components (UDivider→USeparator), deprecated API usage |
+| `eslint-plugin-nuxt-guardrails`             | 16    | SSR DOM access, legacy head/fetch, no raw `$fetch`, `import.meta.client`/`import.meta.dev`, `useAsyncData`/`useFetch`; **SEO:** require useSeo/Schema on pages, prefer useSeo over bare useHead; **server:** no `.map(async)` (N+1); **stores:** useAppFetch, no Map/Set state, plugin `.client.ts` for browser APIs |
+| `eslint-plugin-atx`                         | 30    | Design system: UButton/ULink, no inline hex, Lucide icons, no Tailwind v3 deprecated (fixable), no invalid Nuxt UI tokens, Zod validation; **hydration:** ClientOnly for USwitch/UNavigationMenu/UColorMode*; no @apply in scoped style; **architecture:** no module-scope ref in composables/utils, no inline types in stores |
 | `eslint-plugin-vue-official-best-practices` | 13    | Composition API, Pinia patterns, typed defineProps, `use` prefix                 |
 
 **Build:** `pnpm run build:plugins` (ATX plugin is plain `.mjs` — no build needed).
@@ -138,7 +205,7 @@ These workspace-local ESLint plugins enforce patterns at lint time. Run `pnpm ru
 
 # 📖 Recipes
 
-These are opt-in feature recipes. Follow them when the project needs a specific capability. For working reference implementations of each, refer to the **`apps/examples/`** application.
+These are opt-in feature recipes. Follow them when the project needs a specific capability. For working reference implementations, refer to the showcase apps: `apps/example-auth/`, `apps/example-blog/`, `apps/example-marketing/`, `apps/example-dashboard/`.
 
 ---
 
@@ -244,7 +311,7 @@ doppler secrets set CLOUDFLARE_API_TOKEN='${narduk-enterprise-apps.prd.CLOUDFLAR
 3. On push to `main`, `deploy.yml` installs the Doppler CLI, fetches **all resolved secrets** (hub refs are resolved server-side), and injects them into `$GITHUB_ENV`
 4. `pnpm build` and `wrangler deploy` run with full access to all secrets
 
-**Reference:** See `apps/examples/nuxt.config.ts` for the full runtimeConfig block.
+**Reference:** See `apps/example-auth/nuxt.config.ts` for the full runtimeConfig block.
 
 ---
 
@@ -298,7 +365,11 @@ doppler secrets set CLOUDFLARE_API_TOKEN='${narduk-enterprise-apps.prd.CLOUDFLAR
 
 5. Place unit tests in `tests/composables/`, E2E tests in `tests/e2e/`.
 
-**Reference:** See `apps/examples/tests/` for example test files.
+**Reference:** Tests can be added to any example app under `tests/composables/` and `tests/e2e/`.
+
+### Test Explorer: enabling Playwright projects
+
+E2E tests use a **single root config** (`playwright.config.ts` at repo root) with one project per app (showcase, example-auth, example-blog, example-marketing, example-dashboard). In the IDE Test Explorer, those projects can appear as **disabled** (greyed out) until you enable them: open the **Playwright** sidebar (below the Test Explorer), find **PROJECTS**, and **check the boxes** for the apps you want. After that you can run or debug tests from the Test Explorer as usual. From the terminal, `pnpm test:e2e` runs all projects; `pnpm test:e2e:auth` runs only the example-auth project.
 
 ---
 
@@ -316,7 +387,7 @@ doppler secrets set CLOUDFLARE_API_TOKEN='${narduk-enterprise-apps.prd.CLOUDFLAR
 
 **Key constraint:** All crypto MUST use Web Crypto API (`crypto.subtle.deriveKey` with PBKDF2). Node.js `crypto` and `bcrypt` are forbidden on Cloudflare Workers.
 
-**Reference:** See `apps/examples/server/utils/` and `apps/examples/app/composables/useAuth.ts` (Note: some utils like auth are inherited from the layer).
+**Reference:** See `apps/example-auth/server/utils/` and `apps/example-auth/app/composables/useAuth.ts`.
 
 ---
 
@@ -357,7 +428,7 @@ All plugins **no-op gracefully** when their keys are empty — safe for dev with
 
 **Key gotcha:** On Cloudflare Workers, Nuxt Content auto-switches to D1 database storage. Make sure the `DB` binding is configured in `wrangler.json`.
 
-**Reference:** See `apps/examples/content/templates/blog/` and `apps/examples/app/pages/templates/blog/`.
+**Reference:** See `apps/example-blog/content/blog/` and `apps/example-blog/app/pages/`.
 
 ---
 
@@ -386,12 +457,12 @@ All plugins **no-op gracefully** when their keys are empty — safe for dev with
 
 **Steps:**
 
-1. Browse the components in `apps/examples/app/components/ui/` — includes `HeroSection`, `FeatureGrid`, `PricingTable`, `TestimonialCarousel`, `ContactForm`, `CTABanner`.
-2. Browse layouts in `apps/examples/app/layouts/` — includes `blog.vue`, `dashboard.vue`, `landing.vue`.
+1. Browse components in `apps/example-marketing/app/components/ui/` — `HeroSection`, `PricingTable`, `TestimonialCarousel`, `ContactForm`.
+2. Browse layouts: `apps/example-blog/app/layouts/blog.vue`, `apps/example-dashboard/app/layouts/dashboard.vue`, `apps/example-marketing/app/layouts/landing.vue`.
 3. Copy what you need into your project's `app/components/` or `app/layouts/`.
 4. Customize colors via `app/app.config.ts` and fonts via `app/assets/css/main.css`.
 
-**Reference:** See `apps/examples/app/components/ui/` for the full set.
+**Reference:** See the showcase apps for working examples of each component.
 
 ---
 
@@ -406,4 +477,4 @@ All plugins **no-op gracefully** when their keys are empty — safe for dev with
 3. For consistent card chrome, create an `AppFormCard` wrapper component.
 4. Use layout utility classes in `main.css`: `.form-section` (vertical gap), `.form-row` (2-col grid), `.form-actions` (button alignment).
 
-**Reference:** See `apps/examples/app/components/AppFormCard.vue` and `apps/examples/app/composables/useFormHandler.ts`.
+**Reference:** See `apps/example-auth/app/pages/login.vue` and `apps/example-marketing/app/components/ui/ContactForm.vue` for Zod-validated form examples.

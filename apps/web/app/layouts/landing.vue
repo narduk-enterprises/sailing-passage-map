@@ -1,13 +1,15 @@
 <script setup lang="ts">
-/**
- * Landing layout — Full-bleed, minimal chrome.
- *
- * Usage: Add `definePageMeta({ layout: 'landing' })` to any page.
- * Great for marketing/landing pages where you want full control.
- */
 const colorMode = useColorMode()
-const toggleTheme = () => {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+
+const colorModeIcon = computed(() => {
+  if (colorMode.preference === 'system') return 'i-lucide-monitor'
+  return colorMode.value === 'dark' ? 'i-lucide-moon' : 'i-lucide-sun'
+})
+
+function cycleColorMode() {
+  const modes = ['system', 'light', 'dark'] as const
+  const idx = modes.indexOf(colorMode.preference as typeof modes[number])
+  colorMode.preference = modes[(idx + 1) % modes.length]!
 }
 </script>
 
@@ -26,10 +28,10 @@ const toggleTheme = () => {
           <div class="flex items-center gap-2">
             <slot name="nav" />
             <UButton
-              :icon="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'"
+              :icon="colorModeIcon"
               variant="ghost"
               color="neutral"
-              @click="toggleTheme"
+              @click="cycleColorMode"
             />
           </div>
         </div>
@@ -46,7 +48,7 @@ const toggleTheme = () => {
       <div class="border-t border-default py-6 text-center text-sm text-muted">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <slot name="footer">
-            <p>&copy; {{ new Date().getFullYear() }} Your Company. All rights reserved.</p>
+            <p>&copy; <NuxtTime :datetime="new Date()" year="numeric" /> Your Company. All rights reserved.</p>
           </slot>
         </div>
       </div>

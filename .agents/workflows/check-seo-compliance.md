@@ -4,6 +4,8 @@ description: Audit pages for SEO compliance (useSeo, Schema.org, OG images)
 
 This workflow ensures every page uses the template's standardized SEO composables instead of bare Nuxt primitives.
 
+**ESLint (run first):** Many checks are enforced at lint time: `nuxt-guardrails/require-use-seo-on-pages`, `nuxt-guardrails/prefer-use-seo-over-bare-meta`, `nuxt-guardrails/require-schema-on-pages`. Run `pnpm run lint` before manual checks below.
+
 1. **Check for pages missing `useSeo()`**
    - Every page in `app/pages/` must call `useSeo()` for consistent title, description, and OG image generation.
      // turbo

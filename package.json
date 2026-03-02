@@ -2,16 +2,42 @@
   "name": "nuxt-v4-template-monorepo",
   "private": true,
   "scripts": {
-    "dev": "doppler run -- pnpm -r --filter web dev",
+    "dev": "pnpm --filter web dev",
     "build": "doppler run -- pnpm -r build",
     "build:plugins": "pnpm --filter @narduk/eslint-config build",
-    "lint": "doppler run -- pnpm -r lint",
-    "typecheck": "doppler run -- pnpm -r typecheck",
-    "quality": "doppler run -- pnpm -r quality",
+    "prelint": "pnpm run build:plugins",
+    "lint": "pnpm run prelint && pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "quality": "pnpm -r quality",
     "setup": "doppler run -- jiti tools/init.ts",
-    "validate": "doppler run -- jiti tools/validate.ts"
+    "validate": "doppler run -- jiti tools/validate.ts",
+    "dev:kill": "sh scripts/dev-kill.sh",
+    "dev:showcase": "concurrently -n showcase,auth,blog,mkt,dash,og,maps -c blue,green,yellow,magenta,cyan,white,gray \"pnpm --filter showcase dev\" \"sh scripts/run-dev-auth.sh\" \"pnpm --filter example-blog dev\" \"pnpm --filter example-marketing dev\" \"pnpm --filter example-dashboard dev\" \"pnpm --filter example-og-image dev\" \"pnpm --filter example-apple-maps dev\"",
+    "dev:auth": "pnpm --filter example-auth dev",
+    "dev:blog": "pnpm --filter example-blog dev",
+    "dev:marketing": "pnpm --filter example-marketing dev",
+    "dev:dashboard": "pnpm --filter example-dashboard dev",
+    "dev:og-image": "pnpm --filter example-og-image dev",
+    "db:ready:showcase": "pnpm --filter example-auth run db:ready",
+    "db:migrate:auth": "pnpm --filter example-auth run db:migrate",
+    "db:seed:auth": "pnpm --filter example-auth run db:seed",
+    "db:migrate:dashboard": "pnpm --filter example-dashboard run db:migrate",
+    "db:seed:dashboard": "pnpm --filter example-dashboard run db:seed",
+    "build:showcase": "pnpm -r --filter 'example-*' --filter showcase build",
+    "deploy:showcase": "pnpm -r --filter 'example-*' --filter showcase build && pnpm -r --filter 'example-*' --filter showcase exec wrangler deploy",
+    "test:e2e": "playwright test",
+    "test:e2e:auth": "pnpm --filter example-auth test:e2e",
+    "test:e2e:blog": "pnpm --filter example-blog test:e2e",
+    "test:e2e:marketing": "pnpm --filter example-marketing test:e2e",
+    "test:e2e:dashboard": "pnpm --filter example-dashboard test:e2e",
+    "test:e2e:showcase": "pnpm --filter showcase test:e2e",
+    "dev:apple-maps": "pnpm --filter example-apple-maps dev",
+    "test:e2e:apple-maps": "pnpm --filter example-apple-maps test:e2e"
   },
   "pnpm": {
+    "overrides": {
+      "nuxt-og-image": "6.0.0-beta.42"
+    },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "better-sqlite3",
@@ -25,5 +51,9 @@
   },
   "volta": {
     "node": "22.22.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "@playwright/test": "^1.49.0"
   }
 }

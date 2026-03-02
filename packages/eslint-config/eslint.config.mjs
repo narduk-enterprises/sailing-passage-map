@@ -58,6 +58,9 @@ export const sharedConfigs = [
   // ATX design-system rules (all .vue files)
   ...atx.configs.recommended,
 
+  // ATX app architecture (composables, utils, stores)
+  ...atx.configs.app,
+
   // ATX server safety rules (server/**/*.ts)
   ...atx.configs.server,
 

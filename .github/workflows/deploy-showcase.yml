@@ -1,0 +1,55 @@
+name: Deploy Showcase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/showcase/**'
+      - 'apps/example-*/**'
+      - 'layers/narduk-nuxt-layer/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NUXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    strategy:
+      matrix:
+        app: [showcase, example-auth, example-blog, example-marketing, example-dashboard]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Fetch Doppler Secrets
+        run: doppler secrets download --no-file --format docker >> $GITHUB_ENV
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
+      - name: Build and Deploy ${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          pnpm build
+          pnpm exec wrangler deploy

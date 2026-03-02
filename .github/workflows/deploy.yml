@@ -3,6 +3,8 @@ name: Deploy to Cloudflare Workers
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'layers/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,10 +39,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            .nuxt
-            .output
+            apps/web/.nuxt
+            apps/web/.output
             node_modules/.cache
-          key: nuxt-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('app/**', 'server/**', 'nuxt.config.ts') }}
+          key: nuxt-build-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/web/app/**', 'apps/web/server/**', 'apps/web/nuxt.config.ts') }}
           restore-keys: |
             nuxt-build-${{ hashFiles('pnpm-lock.yaml') }}-
             nuxt-build-

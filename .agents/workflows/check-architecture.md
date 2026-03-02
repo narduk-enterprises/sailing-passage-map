@@ -2,7 +2,9 @@
 description: Audit architectural separation of concerns — Thin Components, Thick Composables, Thin Stores
 ---
 
-This workflow enforces a clean service-layer architecture. View components should contain minimal logic, complex logic belongs in composables, and stores should be thin (delegating to services and types).
+This workflow enforces a clean service-layer architecture.
+
+**ESLint (run first):** Module-scope `ref()` in composables/utils is flagged by `atx/no-module-scope-ref`. Inline types in stores by `atx/no-inline-types-in-stores`. Raw fetch in stores by `nuxt-guardrails/no-raw-fetch-in-stores`. Run `pnpm run lint` before manual checks below. View components should contain minimal logic, complex logic belongs in composables, and stores should be thin (delegating to services and types).
 
 1. **Check component size and logic (Thin Components)**
    - Components in `app/components/` and `app/pages/` should ideally be under 150 lines.

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/schemas/config/wrangler.json",
+  "name": "example-apple-maps",
+  "main": ".output/server/index.mjs",
+  "assets": { "directory": ".output/public" },
+  "compatibility_date": "2025-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true }
+}

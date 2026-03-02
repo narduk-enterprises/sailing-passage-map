@@ -4,6 +4,8 @@ description: Audit plugin naming, lifecycle safety, and analytics patterns
 
 This workflow enforces safe Nuxt plugin naming conventions and lifecycle patterns derived from stonx-app-2026.
 
+**ESLint (run first):** `nuxt-guardrails/prefer-import-meta-dev` flags `process.env.NODE_ENV` in server/ and app/ (use `import.meta.dev`). Plugins using browser APIs without `.client.ts` suffix are flagged by `nuxt-guardrails/plugin-suffix-for-browser-apis`. Run `pnpm run lint` before manual checks below.
+
 1. **Verify plugin file suffixes**
    - Plugins that access `window`, `document`, or browser-only APIs MUST use the `.client.ts` suffix. Server-only plugins MUST use `.server.ts`. Incorrect suffixes cause SSR crashes or client-side errors.
      // turbo
@@ -16,6 +18,8 @@ This workflow enforces safe Nuxt plugin naming conventions and lifecycle pattern
 
 3. **Check for `process.env.NODE_ENV` in server code**
    - Server-side code should use `import.meta.dev` (the Vite/Nitro standard) instead of `process.env.NODE_ENV`. The latter is unreliable in Cloudflare Workers.
+   - **Enforced by:** `nuxt-guardrails/prefer-import-meta-dev`
+   - Optional manual check:
      // turbo
      `grep -rn "process.env.NODE_ENV" server/ app/ 2>/dev/null || echo "No process.env.NODE_ENV found (pass)"`
 

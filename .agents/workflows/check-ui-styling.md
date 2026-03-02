@@ -4,6 +4,8 @@ description: Audit Tailwind v4 CSS import order, token usage, and Nuxt UI v4 com
 
 This workflow enforces Tailwind CSS v4 and Nuxt UI 4 styling standards. Incorrect import order is the #1 cause of completely unstyled Nuxt UI components. It also ensures the codebase correctly uses modern styling primitives and avoids deprecated patterns.
 
+**ESLint (run first):** Component renames (UDivider→USeparator, UDropdown→UDropdownMenu) are enforced by `nuxt-ui/no-deprecated-component`. Hardcoded colors and icons by `atx/no-inline-hex`, `atx/no-raw-tailwind-colors`, and `atx/lucide-icons-only`. Tailwind v3 deprecated classes (flex-shrink→shrink, bg-gradient-to-*→bg-linear-to-*) by `atx/no-tailwind-v3-deprecated`. Invalid Nuxt UI tokens (e.g. text-foreground) by `atx/no-invalid-nuxt-ui-token`. `atx/no-apply-in-scoped-style` disallows `@apply` in scoped styles. Run `pnpm run lint` before manual checks below.
+
 1. **Verify `main.css` import order**
    - The import order MUST be: (1) Google Fonts `@import url(...)`, (2) `@import 'tailwindcss'`, (3) `@import '@nuxt/ui'`. Getting this wrong causes all Nuxt UI components to render unstyled.
      // turbo
@@ -22,7 +24,7 @@ This workflow enforces Tailwind CSS v4 and Nuxt UI 4 styling standards. Incorrec
    - If found in `<style scoped>` blocks, refactor to use Tailwind utility classes inline or CSS variables.
 
 4. **Check for deprecated Tailwind v3 class names**
-   - These classes were renamed in Tailwind v4 and will silently fail:
+   - **Enforced by:** `atx/no-tailwind-v3-deprecated` (fixable). These classes were renamed in Tailwind v4 and will silently fail:
      - `flex-shrink-0` → `shrink-0`
      - `flex-grow-0` → `grow-0`
      - `bg-gradient-to-r` → `bg-linear-to-r`
@@ -31,6 +33,8 @@ This workflow enforces Tailwind CSS v4 and Nuxt UI 4 styling standards. Incorrec
 
 5. **Check for hardcoded color values and generic Tailwind color usage**
    - Templates should use Nuxt UI design tokens (`primary`, `neutral`, etc.) and Tailwind theme colors, not hardcoded hex/rgb values in templates.
+   - **Enforced by:** `atx/no-inline-hex`, `atx/no-raw-tailwind-colors`
+   - Optional manual check:
      // turbo
      `grep -rn "color: #\|color: rgb\|bg-\[#" app/components/ app/pages/ 2>/dev/null | head -15 || echo "No hardcoded colors found (pass)"`
    - A few exceptions are acceptable (e.g., `theme-color` meta tag), but component styling should always use tokens.
@@ -38,12 +42,16 @@ This workflow enforces Tailwind CSS v4 and Nuxt UI 4 styling standards. Incorrec
 
 6. **Check for `UDivider`**
    - Ensure `UDivider` is not used anywhere in `app/`. It has been renamed to `USeparator` in v4.
+   - **Enforced by:** `nuxt-ui/no-deprecated-component` (also UDropdown→UDropdownMenu)
+   - Optional manual check:
      // turbo
      `grep -rn "UDivider" app/ 2>/dev/null || echo "No UDivider found (pass)"`
    - If found, replace with `USeparator`.
 
 7. **Check for correct icon syntax**
    - Nuxt UI 4 and Nuxt Icon strongly prefer the `i-` prefix syntax (e.g., `i-lucide-home`).
+   - **Enforced by:** `atx/lucide-icons-only`
+   - Optional manual check:
      // turbo
      `grep -rn "name=\"heroicons" app/ 2>/dev/null || echo "No old heroicons found (pass)"`
 

@@ -1,21 +1,26 @@
 /**
- * Global $fetch interceptor.
+ * Global $fetch interceptor — CSRF header injection.
  *
- * Automatically adds the `X-Requested-With: XMLHttpRequest` header to every
- * outgoing API request. This satisfies the CSRF middleware which requires
- * the header on all state-changing methods (POST, PUT, PATCH, DELETE).
+ * Automatically adds the `X-Requested-With: XMLHttpRequest` header to
+ * same-origin API requests (relative URLs starting with `/`). This satisfies
+ * the CSRF middleware which requires the header on all state-changing methods.
+ *
+ * Composables must use useNuxtApp().csrfFetch for same-origin API calls;
+ * auto-imported $fetch is the raw ofetch and is not patched.
  *
  * Runs client-side only — server-side $fetch calls don't go through CSRF.
  */
-export default defineNuxtPlugin(() => {
-  const { $fetch: _fetch } = useNuxtApp()
-
-  globalThis.$fetch = $fetch.create({
-    onRequest(ctx) {
-      // Cleanly construct a Headers object to satisfy DOM types
-      const headers = new Headers(ctx.options.headers as HeadersInit || {})
+const fetchWithCsrf = $fetch.create({
+  onRequest({ options, request }) {
+    if (typeof request === 'string' && request.startsWith('/')) {
+      const headers = new Headers(options.headers as HeadersInit || {})
       headers.set('X-Requested-With', 'XMLHttpRequest')
-      ctx.options.headers = headers
-    },
-  }) as typeof $fetch
+      options.headers = headers
+    }
+  },
+})
+
+export default defineNuxtPlugin(() => {
+  globalThis.$fetch = fetchWithCsrf as typeof globalThis.$fetch
+  return { provide: { csrfFetch: fetchWithCsrf } }
 })

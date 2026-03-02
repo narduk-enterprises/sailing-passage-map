@@ -6,7 +6,7 @@
  */
 export default defineNuxtPlugin(() => {
   const runtimeConfig = useRuntimeConfig()
-  const measurementId = runtimeConfig.public.gaMeasurementId as string
+  const measurementId = runtimeConfig.public.gaMeasurementId
 
   if (!measurementId || import.meta.server) return
 

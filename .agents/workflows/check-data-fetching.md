@@ -4,8 +4,12 @@ description: Audit data fetching for waterfalls, raw $fetch, and N+1 queries
 
 This workflow catches API waterfall anti-patterns, unsafe data fetching, and N+1 query risks derived from stonx-app-2026's data-bundling standards.
 
+**ESLint (run first):** Raw `$fetch` in app code is enforced by `nuxt-guardrails/no-raw-fetch`. Valid `useAsyncData`/`useFetch` usage is checked by `nuxt-guardrails/valid-useAsyncData` and `nuxt-guardrails/valid-useFetch`. Stores must use `useAppFetch` per `nuxt-guardrails/no-raw-fetch-in-stores`. Server N+1 pattern `.map(async` is flagged by `nuxt-guardrails/no-map-async-in-server`. Run `pnpm run lint` (or equivalent) before manual checks below.
+
 1. **Check for raw `$fetch` in page/component setup**
    - All data fetching in `<script setup>` must use `useAsyncData` or `useFetch`, never bare `await $fetch`. Raw `$fetch` executes on both server and client, causing double-fetches and hydration mismatches.
+   - **Enforced by:** `nuxt-guardrails/no-raw-fetch`
+   - Optional manual check:
      // turbo
      `grep -rn "await \$fetch\|const .* = \$fetch" app/pages/ app/components/ 2>/dev/null || echo "No unsafe raw \$fetch found (pass)"`
 

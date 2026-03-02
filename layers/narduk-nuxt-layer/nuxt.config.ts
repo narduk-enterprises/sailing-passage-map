@@ -42,12 +42,12 @@ export default defineNuxtConfig({
   },
 
   colorMode: {
-    preference: 'dark'
+    preference: 'system'
   },
 
   ogImage: {
     defaults: {
-      component: 'OgImageDefault',
+      component: 'OgImageDefaultTakumi',
     },
   },
   
