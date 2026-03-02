@@ -226,12 +226,14 @@ Sitemap and robots.txt are automatic. OG image templates live in `app/components
 - **SSR-safe state** — use `useState()` or Pinia stores. Never use bare `ref()` at module scope (causes cross-request leaks).
 - **Data fetching** — always use `useAsyncData` or `useFetch`, never raw `$fetch` in `<script setup>`.
 - **Client-only code** — wrap `window`/`document` access in `onMounted` or `<ClientOnly>`.
+- **Server imports** — when importing files inside `server/` (e.g., from `server/api/` to `server/database/schema.ts`), **use the `#server/` alias** (e.g., `import { ... } from '#server/database/schema'`) instead of relative paths like `../../../database/schema`. Relative imports cross the boundary between standard app code and server code, causing `nuxt typecheck` modules to lose resolution context.
 
 ## Starting a New Project from This Template
 
 Follow these steps **in order** — the init script handles renaming, D1 provisioning, and Doppler setup.
 
 > **Doppler is optional for initial setup.** Steps that require Doppler (project creation, hub secret sync, GitHub CI token, analytics) are skipped gracefully when the Doppler CLI is not installed or configured. You can complete them later by running `doppler setup` and re-running `pnpm run setup` with `--repair`.
+> Note: If you do have Doppler installed but your hub secrets are not fully configured yet, the setup script will intelligently **defer** the analytics provisioning step with a clear follow-up command.
 
 1. Clone: `git clone https://github.com/loganrenz/narduk-nuxt-template.git my-app && cd my-app`
 2. Clear the template's git history and set up your own repository (Required for GitHub CI secrets to bind properly):
@@ -596,11 +598,19 @@ When writing new features, modifying components, or creating composables, **agen
 4. Create `app/composables/useAuth.ts` — reactive auth state backed by `useState()`.
 5. Create `app/middleware/auth.ts` — route guard that redirects unauthenticated users.
 
-### Schema Ownership & Extensions
+### 🚨 Extending the Database Schema
 
 The layer provides base `users` and `sessions` tables via its own `server/database/schema.ts` and auto-imports its own `useDatabase` helper.
 If your app defines its own schema (e.g., adding `clients` and `invoices` tables, or modifying the base tables), you **must** provide your own database helper in your app (e.g., `apps/web/server/utils/database.ts` -> `useAppDatabase(event)`).
-Using the auto-imported `useDatabase` from the layer will resolve to the layer's schema, causing your app's tables to be missing from the Drizzle instance. Ensure all your app's API routes call `useAppDatabase(event)` to avoid Nitro auto-import conflicts.
+
+**To extend the schema:**
+
+1. Re-export the layer schema in your app (`export * from '#layer/server/database/schema'`).
+2. Define your new tables below the re-export.
+3. Create `apps/web/server/utils/database.ts` that exports `useAppDatabase(event)` containing your new schema.
+4. Call `useAppDatabase(event)` from all your app's server routes.
+
+Using the auto-imported `useDatabase` from the layer will resolve to the layer's schema, causing your app's tables to be missing from the Drizzle instance. **If you name your app util `useDatabase`, Nitro will warn about "Duplicated imports" and favor the layer's version.**
 
 **Key constraint:** All crypto MUST use Web Crypto API (`crypto.subtle.deriveKey` with PBKDF2). Node.js `crypto` and `bcrypt` are forbidden on Cloudflare Workers.
 

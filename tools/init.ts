@@ -543,6 +543,22 @@ Pushes to \`main\` are automatically built and deployed via the GitHub Actions C
     }
   }
 
+  // 6.5. Local Doppler Setup (skip if in CI)
+  console.log('\nStep 6.5/10: Configuring local Doppler environment...')
+  if (!DOPPLER_AVAILABLE) {
+    console.log('  ⏭ Doppler CLI not configured; skipping local setup.')
+  } else if (process.env.CI) {
+    console.log('  ⏭ Running in CI; skipping local Doppler setup.')
+  } else {
+    try {
+      execSync(`doppler setup --project ${APP_NAME} --config dev`, { encoding: 'utf-8', stdio: 'pipe' })
+      console.log(`  ✅ Local Doppler environment configured for project: ${APP_NAME} (dev config)`)
+    } catch (error: any) {
+      const stderr = error.stderr || error.message || ''
+      console.warn(`  ⚠️ Failed to configure local Doppler environment: ${stderr}`)
+    }
+  }
+
   // 7. Analytics Provisioning (each service internally skips if already configured)
   console.log('\nStep 7/10: Bootstrapping Google Analytics & IndexNow...')
   if (!DOPPLER_AVAILABLE) {
@@ -749,7 +765,11 @@ export default defineConfig({
   } else {
     console.log('\nNext steps:')
     console.log(`  1. Review Doppler secrets: doppler secrets --project ${APP_NAME} --config prd`)
-    console.log(`  2. Wire Doppler locally: doppler setup --project ${APP_NAME} --config dev`)
+    if (process.env.CI) {
+      console.log(`  2. Wire Doppler locally: doppler setup --project ${APP_NAME} --config dev`)
+    } else {
+      console.log(`  2. Verify local Doppler: doppler run -- doppler secrets`)
+    }
     console.log(`  3. Run database migration: pnpm run db:migrate`)
     console.log(`  4. Start dev server: doppler run -- pnpm run dev`)
     console.log(`  5. Verify infrastructure: pnpm run validate`)
