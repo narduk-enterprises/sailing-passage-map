@@ -74,5 +74,5 @@ jobs:
 
       - name: Build and Deploy
         run: |
-          pnpm build
+          pnpm -r build
           pnpm exec wrangler deploy
