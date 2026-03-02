@@ -107,11 +107,22 @@ To add a new example app:
 
 ### Updating the Layer
 
-To pull the latest layer fixes and features:
+To pull the latest layer fixes and features from the template repository:
 
 ```bash
-pnpm update @loganrenz/narduk-nuxt-template-layer
+pnpm run update-layer
 ```
+
+**What this does under the hood:**
+
+1. Adds or updates a `template` Git remote pointing to `https://github.com/loganrenz/narduk-nuxt-template.git`.
+2. Fetches `main` from the template.
+3. Checks out the `layers/narduk-nuxt-layer` directory from `template/main`, overwriting the local layer directory.
+4. Rewrites `layers/narduk-nuxt-layer/package.json` so its `repository.url` points to _your_ app's origin instead of the template's, preventing identity drift.
+5. Runs `pnpm install` to sync any new layer dependencies with the workspace lockfile.
+
+> **⚠️ WARNING: Local Overwrites**  
+> This script will unconditionally overwrite `layers/narduk-nuxt-layer`. Any customizations you've made directly to the layer code in your repository will be discarded. You will need to use your Git staging interface (e.g., `git diff` or VS Code Source Control) to review the incoming changes and merge/restore your local modifications before committing.
 
 ## Hard Constraints (Cloudflare Workers)
 
