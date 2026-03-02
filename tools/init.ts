@@ -655,6 +655,30 @@ Pushes to \`main\` are automatically built and deployed via the GitHub Actions C
         await fs.writeFile(rootPkgPath, JSON.stringify(rootPkg, null, 2) + '\n', 'utf-8')
       }
 
+      // Strip test and quality scripts from all eslint packages so implementing repositories
+      // don't run internal template tests or lint the linters.
+      const eslintPkgPaths = [
+        path.join(ROOT_DIR, 'packages', 'eslint-config', 'package.json'),
+        path.join(ROOT_DIR, 'packages', 'eslint-config', 'eslint-plugin-nuxt-guardrails', 'package.json'),
+        path.join(ROOT_DIR, 'packages', 'eslint-config', 'eslint-plugin-nuxt-ui', 'package.json'),
+        path.join(ROOT_DIR, 'packages', 'eslint-config', 'eslint-plugin-vue-official-best-practices', 'package.json'),
+      ]
+      for (const pkgPath of eslintPkgPaths) {
+        try {
+          const pkgContent = await fs.readFile(pkgPath, 'utf-8')
+          const pkg = JSON.parse(pkgContent)
+          if (pkg.scripts) {
+            const scriptsToRemove = ['quality', 'test', 'test:watch', 'test:plugins', 'lint', 'typecheck']
+            for (const script of scriptsToRemove) {
+              delete pkg.scripts[script]
+            }
+            await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
+          }
+        } catch (err: any) {
+          // ignore
+        }
+      }
+
       // Strip deploy-examples and deploy-showcase jobs from ci.yml so CI does not fail after example apps are removed
       const ciYamlPath = path.join(ROOT_DIR, '.github', 'workflows', 'ci.yml')
       try {
