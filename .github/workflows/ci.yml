@@ -80,10 +80,9 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: pnpm build
 
-  # ── Deploy (only on push to main, after builds pass) ──
+  # ── Deploy (only on push to main, runs in parallel with quality + build) ──
   deploy:
     name: Deploy
-    needs: [build]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
