@@ -424,6 +424,47 @@ jobs:
   }
   console.log()
 
+  // Phase 9: Update compatibility dates to today
+  console.log('Phase 9: Updating compatibility dates...')
+  const today = new Date().toISOString().slice(0, 10)
+  let datesUpdated = 0
+
+  // wrangler.json files
+  const appsPath = join(appDir, 'apps')
+  if (existsSync(appsPath)) {
+    for (const entry of readdirSync(appsPath, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const wranglerPath = join(appsPath, entry.name, 'wrangler.json')
+      if (!existsSync(wranglerPath)) continue
+      try {
+        const content = readFileSync(wranglerPath, 'utf-8')
+        const updated = content.replace(/"compatibility_date":\s*"[^"]*"/, `"compatibility_date": "${today}"`)
+        if (content !== updated) {
+          console.log(`  UPDATE: apps/${entry.name}/wrangler.json → ${today}`)
+          if (!dryRun) writeFileSync(wranglerPath, updated, 'utf-8')
+          datesUpdated++
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  // nuxt.config.ts compatibilityDate in layer
+  const layerConfigPath = join(appDir, 'layers/narduk-nuxt-layer/nuxt.config.ts')
+  if (existsSync(layerConfigPath)) {
+    try {
+      const content = readFileSync(layerConfigPath, 'utf-8')
+      const updated = content.replace(/compatibilityDate:\s*'[^']*'/, `compatibilityDate: '${today}'`)
+      if (content !== updated) {
+        console.log(`  UPDATE: layers/narduk-nuxt-layer/nuxt.config.ts → ${today}`)
+        if (!dryRun) writeFileSync(layerConfigPath, updated, 'utf-8')
+        datesUpdated++
+      }
+    } catch { /* skip */ }
+  }
+
+  if (datesUpdated === 0) console.log('  All compatibility dates are current.')
+  console.log()
+
   // Summary
   console.log('═══════════════════════════════════════════════════════════════')
   if (dryRun) {
