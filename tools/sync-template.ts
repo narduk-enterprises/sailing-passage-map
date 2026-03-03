@@ -104,6 +104,7 @@ const SYNC_DIRECTORIES = [
 const REMOVE_STALE = [
   '.github/workflows/publish-layer.yml',
   '.github/workflows/deploy-showcase.yml',
+  '.github/workflows/deploy.yml',
   '.github/workflows/reusable-quality.yml',
   '.github/workflows/reusable-deploy.yml',
   '.github/workflows/template-sync-bot.yml',
