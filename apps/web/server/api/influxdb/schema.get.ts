@@ -1,10 +1,16 @@
 import { getInfluxDBConfig } from '#server/utils/influxClient'
 import { exploreSchema } from '#server/utils/influxQueries'
+import { z } from 'zod'
+
+const querySchema = z.object({
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+})
 
 export default defineEventHandler(async (event) => {
-    const query = getQuery(event)
-    const startTime = (query.startTime as string) || undefined
-    const endTime = (query.endTime as string) || undefined
+    const query = querySchema.parse(getQuery(event))
+    const startTime = query.startTime
+    const endTime = query.endTime
 
     try {
         const config = getInfluxDBConfig()

@@ -1,3 +1,12 @@
+<script setup lang="ts">
+useSeo({
+  title: 'InfluxDB Explorer — Sailing Passage Map',
+  description: 'Explore and query InfluxDB sailing data, measurements, fields, and raw time-series data.',
+})
+
+useWebPageSchema()
+</script>
+
 <template>
   <NuxtLayout>
     <div class="pm-explorer">
@@ -14,10 +23,3 @@
     </div>
   </NuxtLayout>
 </template>
-
-<script setup lang="ts">
-useSeoMeta({
-  title: 'InfluxDB Explorer — Sailing Passage Map',
-  description: 'Explore and query InfluxDB sailing data, measurements, fields, and raw time-series data.',
-})
-</script>

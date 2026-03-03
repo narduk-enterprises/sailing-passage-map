@@ -60,7 +60,7 @@ function isActiveSpeed(speed: number): boolean {
       <!-- Controls row -->
       <div class="pm-timeline-controls">
         <UButton
-          :icon="isPlaying ? 'i-heroicons-pause-solid' : 'i-heroicons-play-solid'"
+          :icon="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'"
           size="sm"
           color="primary"
           variant="solid"

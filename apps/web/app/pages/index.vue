@@ -1,3 +1,12 @@
+<script setup lang="ts">
+useSeo({
+  title: 'Passage Map — Sailing Track Viewer',
+  description: 'Interactive sailing passage map with vessel tracking, AIS encounter data, and passage history visualization.',
+})
+
+useWebPageSchema()
+</script>
+
 <template>
   <NuxtLayout>
     <PassageShell>
@@ -27,12 +36,3 @@
     </PassageShell>
   </NuxtLayout>
 </template>
-
-<script setup lang="ts">
-useSeoMeta({
-  title: 'Passage Map — Sailing Track Viewer',
-  description: 'Interactive sailing passage map with vessel tracking, AIS encounter data, and passage history visualization.',
-  ogTitle: 'Sailing Passage Map',
-  ogDescription: 'Interactive sailing passage map with vessel tracking and animated timeline playback.',
-})
-</script>

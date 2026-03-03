@@ -1,6 +1,11 @@
 import { getCloudflareEnv } from '#server/utils/cloudflareEnv'
 import { getPassagesStorage } from '#server/utils/storage'
 import { getD2Database, updatePassageName } from '#server/utils/d2Storage'
+import { z } from 'zod'
+
+const bodySchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+})
 
 export default defineEventHandler(async (event) => {
     const id = getRouterParam(event, 'id')
@@ -8,12 +13,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Passage ID is required' })
     }
 
-    const body = await readBody(event)
-    const { name } = body || {}
-
-    if (!name || typeof name !== 'string') {
-        throw createError({ statusCode: 400, statusMessage: 'Name is required' })
-    }
+    const { name } = bodySchema.parse(await readBody(event))
 
     const env = getCloudflareEnv(event)
     const config = useRuntimeConfig()

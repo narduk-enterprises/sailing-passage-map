@@ -1,12 +1,19 @@
 import { InfluxDB, flux } from '@influxdata/influxdb-client'
+import { z } from 'zod'
+
+const querySchema = z.object({
+    startTime: z.string().min(1, 'startTime is required'),
+    endTime: z.string().min(1, 'endTime is required'),
+    resolution: z.coerce.number().int().positive().optional().default(60),
+})
 
 export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig()
-    const query = getQuery(event)
+    const query = querySchema.parse(getQuery(event))
 
-    const startTime = query.startTime as string
-    const endTime = query.endTime as string
-    const resolution = query.resolution ? Number.parseInt(query.resolution as string) : 60
+    const startTime = query.startTime
+    const endTime = query.endTime
+    const resolution = query.resolution
 
     if (!startTime || !endTime) {
         throw createError({

@@ -6,17 +6,18 @@ import { buildPassagePositionQuery, buildPassageSpeedQuery } from '#server/utils
 import { parseInfluxResults, transformToPassage } from '#server/utils/passageTransformer'
 import { addQuery } from '#server/utils/queryRegistry'
 import { reverseGeocode, generatePassageName } from '#server/utils/geocoding'
+import { z } from 'zod'
+
+const bodySchema = z.object({
+    startTime: z.string().min(1, 'startTime is required'),
+    endTime: z.string().min(1, 'endTime is required'),
+    resolution: z.coerce.number().int().positive().optional().default(60),
+    name: z.string().optional(),
+    description: z.string().optional(),
+})
 
 export default defineEventHandler(async (event) => {
-    const body = await readBody(event)
-    const { startTime, endTime, resolution = 60, name, description } = body || {}
-
-    if (!startTime || !endTime) {
-        throw createError({
-            statusCode: 400,
-            statusMessage: 'startTime and endTime are required',
-        })
-    }
+    const { startTime, endTime, resolution, name, description } = bodySchema.parse(await readBody(event))
 
     const env = getCloudflareEnv(event)
     const config = useRuntimeConfig()

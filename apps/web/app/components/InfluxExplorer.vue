@@ -60,6 +60,7 @@ const {
     <div v-if="results.length > 0" class="pm-detail-card">
       <h3>Results ({{ results.length }} rows)</h3>
       <div style="overflow-x: auto;">
+        <!-- eslint-disable-next-line atx/no-native-table -- Dynamic columns from query results, UTable requires static column config -->
         <table class="pm-results-table">
           <thead>
             <tr>

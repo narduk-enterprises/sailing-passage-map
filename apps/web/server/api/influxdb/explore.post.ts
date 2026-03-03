@@ -1,10 +1,13 @@
 import { InfluxDB } from '@influxdata/influxdb-client'
+import { z } from 'zod'
+
+const bodySchema = z.object({
+    query: z.string().min(1, 'Query is required'),
+})
 
 export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig()
-    const body = await readBody(event)
-
-    const { query } = body || {}
+    const { query } = bodySchema.parse(await readBody(event))
 
     if (!query || typeof query !== 'string') {
         throw createError({
