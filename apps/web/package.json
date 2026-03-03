@@ -2,12 +2,12 @@
   "name": "web",
   "type": "module",
   "private": true,
-  "version": "1.10.3",
+  "version": "1.0.0",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
-    "db:migrate": "wrangler d1 execute narduk-nuxt-template-db --local --file=drizzle/0000_initial_schema.sql",
-    "db:seed": "wrangler d1 execute narduk-nuxt-template-db --local --file=node_modules/@narduk-enterprises/narduk-nuxt-template-layer/drizzle/seed.sql",
+    "db:migrate": "wrangler d1 execute sailing-passage-map-db --local --file=drizzle/0000_initial_schema.sql && wrangler d1 execute sailing-passage-map-db --local --file=drizzle/0001_passages.sql",
+    "db:seed": "wrangler d1 execute sailing-passage-map-db --local --file=node_modules/@narduk-enterprises/narduk-nuxt-template-layer/drizzle/seed.sql",
     "db:studio": "drizzle-kit studio",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -18,6 +18,9 @@
     "quality": "pnpm run lint && pnpm run typecheck"
   },
   "dependencies": {
+    "@apple/mapkit-loader": "^0.2.1",
+    "@aws-sdk/client-s3": "^3.956.0",
+    "@influxdata/influxdb-client": "^1.35.0",
     "@narduk-enterprises/narduk-nuxt-template-layer": "workspace:*",
     "@narduk/eslint-config": "workspace:*",
     "drizzle-orm": "^0.45.1",
@@ -26,6 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@types/apple-mapkit-js-browser": "^5.78.1",
     "eslint": "^10.0.2",
     "nitro-cloudflare-dev": "^0.2.2",
     "tailwindcss": "^4.0.0",

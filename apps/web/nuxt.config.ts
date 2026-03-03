@@ -18,18 +18,34 @@ export default defineNuxtConfig({
   },
 
   future: {
-    compatibilityVersion: 4
+    compatibilityVersion: 4,
   },
 
+  css: ['~/assets/css/main.css'],
+
   runtimeConfig: {
-    // Server-only (admin API routes)
+    // MapKit JWT signing
+    mapkitDevToken: process.env.MAPKIT_DEV_TOKEN || '',
+    mapkitProdToken: process.env.MAPKIT_PROD_TOKEN || '',
+    // InfluxDB
+    influxUrl: process.env.INFLUX_URL || 'http://influx.tideye.com:8086',
+    influxToken: process.env.INFLUX_API_KEY || '',
+    influxOrgId: process.env.INFLUX_ORG_ID || '',
+    influxBucket: process.env.INFLUX_BUCKET_DEFAULT || 'Tideye',
+    // R2 S3 API credentials (fallback when bindings aren't available)
+    r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+    // D2 API configuration (for external access)
+    d2ApiUrl: process.env.D2_API_URL || '',
+    d2ApiKey: process.env.D2_API_KEY || '',
+    // Server-only (admin API routes, from layer)
     googleServiceAccountKey: process.env.GSC_SERVICE_ACCOUNT_JSON || '',
     posthogApiKey: process.env.POSTHOG_PERSONAL_API_KEY || '',
     gaPropertyId: process.env.GA_PROPERTY_ID || '',
     posthogProjectId: process.env.POSTHOG_PROJECT_ID || '',
     public: {
-      appUrl: process.env.SITE_URL || 'https://narduk.workers.dev',
-      appName: process.env.APP_NAME || 'Nuxt 4 Demo',
+      appUrl: process.env.SITE_URL || 'https://tideye.com',
+      appName: process.env.APP_NAME || 'Sailing Passage Map',
       // Analytics
       posthogPublicKey: process.env.POSTHOG_PUBLIC_KEY || '',
       posthogHost: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
@@ -37,28 +53,52 @@ export default defineNuxtConfig({
       posthogProjectId: process.env.POSTHOG_PROJECT_ID || '',
       // IndexNow
       indexNowKey: process.env.INDEXNOW_KEY || '',
-    }
+    },
   },
 
   site: {
-    url: process.env.SITE_URL || 'https://narduk.workers.dev',
-    name: 'Nuxt 4 Demo',
-    description: 'A production-ready demo template showcasing Nuxt 4, Nuxt UI 4, Tailwind CSS 4, and Cloudflare Workers with D1 database.',
+    url: process.env.SITE_URL || 'https://tideye.com',
+    name: 'Sailing Passage Map',
+    description: 'Interactive sailing passage map with vessel tracking, AIS encounter data, and passage history visualization.',
     defaultLocale: 'en',
   },
 
   schemaOrg: {
     identity: {
       type: 'Organization',
-      name: 'Nuxt 4 Demo',
-      url: process.env.SITE_URL || 'https://narduk.workers.dev',
+      name: 'Sailing Passage Map',
+      url: process.env.SITE_URL || 'https://tideye.com',
       logo: '/favicon.svg',
     },
   },
 
   image: {
     cloudflare: {
-      baseURL: process.env.SITE_URL || 'https://narduk.workers.dev',
+      baseURL: process.env.SITE_URL || 'https://tideye.com',
+    },
+  },
+
+  app: {
+    head: {
+      title: 'Passage Map',
+      htmlAttrs: { lang: 'en' },
+      meta: [
+        { name: 'theme-color', content: '#0a0f1a' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+      ],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      ],
+      script: [
+        {
+          src: 'https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js',
+          defer: true,
+          crossorigin: 'anonymous',
+        },
+      ],
     },
   },
 })
