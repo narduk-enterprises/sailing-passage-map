@@ -25,41 +25,31 @@ on:
         required: false
 
 jobs:
-  preflight:
-    name: Preflight
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      method: ${{ steps.creds.outputs.method }}
-    steps:
-      - name: Validate credentials
-        id: creds
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-          CF_API: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -n "$DOPPLER_TOKEN" ]; then
-            echo "method=doppler" >> "$GITHUB_OUTPUT"
-            echo "✓ Using Doppler (hub-and-spoke) for secret resolution"
-          elif [ -n "$CF_API" ] && [ -n "$CF_ACCOUNT" ]; then
-            echo "method=direct" >> "$GITHUB_OUTPUT"
-            echo "✓ Using direct Cloudflare credentials"
-          else
-            echo "::error::No deployment credentials configured."
-            echo "Configure DOPPLER_TOKEN (recommended) or CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID."
-            exit 1
-          fi
-
   deploy:
     name: Deploy
-    needs: [preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
       deployments: write
     steps:
+      - name: Validate credentials
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          CF_API: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$DOPPLER_TOKEN" ]; then
+            echo "DEPLOY_METHOD=doppler" >> "$GITHUB_ENV"
+            echo "✓ Using Doppler for secret resolution"
+          elif [ -n "$CF_API" ] && [ -n "$CF_ACCOUNT" ]; then
+            echo "DEPLOY_METHOD=direct" >> "$GITHUB_ENV"
+            echo "✓ Using direct Cloudflare credentials"
+          else
+            echo "::error::No deployment credentials. Set DOPPLER_TOKEN or CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
@@ -72,14 +62,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Fetch secrets from Doppler
-        if: needs.preflight.outputs.method == 'doppler'
+        if: env.DEPLOY_METHOD == 'doppler'
         uses: dopplerhq/secrets-fetch-action@v1.3.1
         with:
           doppler-token: ${{ secrets.DOPPLER_TOKEN }}
           inject-env-vars: true
 
       - name: Set direct Cloudflare credentials
-        if: needs.preflight.outputs.method == 'direct'
+        if: env.DEPLOY_METHOD == 'direct'
         env:
           CF_API: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

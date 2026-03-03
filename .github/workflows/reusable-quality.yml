@@ -18,14 +18,13 @@ env:
   NUXT_TELEMETRY_DISABLED: 1
 
 jobs:
-  quality:
-    name: Lint & Typecheck
+  # ── Shared setup: install, build plugins, prepare types ──
+  setup:
+    name: Prepare Workspace
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -49,11 +48,117 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Lint & Typecheck
-        run: pnpm quality
+      - name: Cache prepared workspace
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            apps/*/.nuxt
+            layers/*/.nuxt
+            packages/eslint-config/*/dist
+            packages/eslint-config/eslint-plugin-nuxt-guardrails/dist
+            packages/eslint-config/eslint-plugin-nuxt-ui/dist
+            packages/eslint-config/eslint-plugin-vue-official-best-practices/dist
+          key: prepared-${{ github.sha }}
+
+  # ── Parallel quality jobs ──
+
+  lint:
+    name: Lint
+    needs: [setup]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore prepared workspace
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/*/.nuxt
+            layers/*/.nuxt
+            packages/eslint-config/*/dist
+            packages/eslint-config/eslint-plugin-nuxt-guardrails/dist
+            packages/eslint-config/eslint-plugin-nuxt-ui/dist
+            packages/eslint-config/eslint-plugin-vue-official-best-practices/dist
+          key: prepared-${{ github.sha }}
+
+      - name: Lint
+        run: pnpm -r run lint
+
+  typecheck:
+    name: Typecheck
+    needs: [setup]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore prepared workspace
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/*/.nuxt
+            layers/*/.nuxt
+            packages/eslint-config/*/dist
+            packages/eslint-config/eslint-plugin-nuxt-guardrails/dist
+            packages/eslint-config/eslint-plugin-nuxt-ui/dist
+            packages/eslint-config/eslint-plugin-vue-official-best-practices/dist
+          key: prepared-${{ github.sha }}
+
+      - name: Typecheck
+        run: pnpm -r run typecheck
+
+  test:
+    name: Unit Tests
+    needs: [setup]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Restore prepared workspace
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/*/.nuxt
+            layers/*/.nuxt
+            packages/eslint-config/*/dist
+            packages/eslint-config/eslint-plugin-nuxt-guardrails/dist
+            packages/eslint-config/eslint-plugin-nuxt-ui/dist
+            packages/eslint-config/eslint-plugin-vue-official-best-practices/dist
+          key: prepared-${{ github.sha }}
 
       - name: Unit Tests
         run: pnpm -r --if-present test:unit
+
+  # ── Drift check (fully independent — no setup dependency) ──
 
   drift-check:
     name: Template Drift Check
