@@ -1,4 +1,5 @@
 import type { Passage } from '~/types/passage'
+import { usePassageStore } from '~/stores/passage'
 import { loadPassageList, loadPassage, sortPassagesByDate } from '~/utils/passageLoader'
 
 /**

@@ -1,27 +1,39 @@
+<script setup lang="ts">
+import { useInfluxExplorer } from '~/composables/useInfluxExplorer'
+
+const {
+  query,
+  loading,
+  error,
+  results,
+  schema,
+  resultColumns,
+  displayedResults,
+  runQuery,
+  loadSchema,
+  formatCell,
+} = useInfluxExplorer()
+</script>
+
 <template>
   <div>
     <!-- Query editor -->
     <div class="pm-query-editor" style="margin-bottom: 1.5rem;">
       <h2 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.75rem 0;">Custom Query</h2>
-      <textarea
+      <UTextarea
         v-model="query"
         placeholder="Enter a Flux query..."
-        spellcheck="false"
+        :spellcheck="false"
+        autoresize
+        :rows="5"
       />
       <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-        <button
-          style="padding: 0.5rem 1rem; background: var(--pm-accent); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; font-size: 0.875rem;"
-          :disabled="loading"
-          @click="runQuery"
-        >
-          {{ loading ? 'Running…' : 'Run Query' }}
-        </button>
-        <button
-          style="padding: 0.5rem 1rem; background: var(--pm-surface-raised); color: var(--pm-text-muted); border: 1px solid var(--pm-border); border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem;"
-          @click="loadSchema"
-        >
+        <UButton :loading="loading" @click="runQuery">
+          Run Query
+        </UButton>
+        <UButton variant="outline" @click="loadSchema">
           Explore Schema
-        </button>
+        </UButton>
       </div>
     </div>
 
@@ -55,7 +67,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, i) in results.slice(0, 100)" :key="i">
+            <tr v-for="(row, i) in displayedResults" :key="i">
               <td v-for="key in resultColumns" :key="key">{{ formatCell(row[key]) }}</td>
             </tr>
           </tbody>
@@ -67,70 +79,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-const query = ref(`from(bucket: "Tideye")
-  |> range(start: -7d)
-  |> filter(fn: (r) => r["_measurement"] == "navigation.position")
-  |> filter(fn: (r) => r["self"] == "t")
-  |> limit(n: 10)`)
-
-const loading = ref(false)
-const error = ref<string | null>(null)
-const results = ref<Record<string, unknown>[]>([])
-const schema = ref<{ measurements: Array<{ name: string; fields: string[]; tagKeys: string[] }> } | null>(null)
-
-const resultColumns = computed(() => {
-  if (results.value.length === 0) return []
-  const keys = new Set<string>()
-  for (const row of results.value.slice(0, 10)) {
-    for (const key of Object.keys(row)) {
-      if (!key.startsWith('_') || key === '_time' || key === '_value' || key === '_measurement' || key === '_field') {
-        keys.add(key)
-      }
-    }
-  }
-  return Array.from(keys)
-})
-
-async function runQuery() {
-  loading.value = true
-  error.value = null
-  results.value = []
-
-  try {
-    const data = await $fetch<{ results: Record<string, unknown>[]; count: number }>('/api/influxdb/explore', {
-      method: 'POST',
-      body: { query: query.value },
-    })
-    results.value = data.results
-  }
-  catch (e) {
-    error.value = e instanceof Error ? e.message : 'Query failed'
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-async function loadSchema() {
-  loading.value = true
-  error.value = null
-
-  try {
-    schema.value = await $fetch('/api/influxdb/schema')
-  }
-  catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to load schema'
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-function formatCell(value: unknown): string {
-  if (value === null || value === undefined) return '–'
-  if (typeof value === 'number') return value.toFixed(4)
-  return String(value)
-}
-</script>

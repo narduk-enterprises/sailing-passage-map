@@ -1,7 +1,3 @@
-declare global {
-    interface Window {
-        mapkit: typeof mapkit
-    }
-}
+/// <reference types="@types/apple-mapkit-js-browser" />
 
 export { }

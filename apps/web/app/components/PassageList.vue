@@ -1,3 +1,19 @@
+<script setup lang="ts">
+import { usePassageStore } from '~/stores/passage'
+import type { Passage } from '~/types/passage'
+import { formatDate, formatDuration } from '~/utils/dateHelpers'
+
+defineProps<{
+  passages: Passage[]
+}>()
+
+defineEmits<{
+  select: [passage: Passage]
+}>()
+
+const store = usePassageStore()
+</script>
+
 <template>
   <div>
     <div
@@ -16,18 +32,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import type { Passage } from '~/types/passage'
-import { formatDate, formatDuration } from '~/utils/dateHelpers'
-
-defineProps<{
-  passages: Passage[]
-}>()
-
-defineEmits<{
-  select: [passage: Passage]
-}>()
-
-const store = usePassageStore()
-</script>

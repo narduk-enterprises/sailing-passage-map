@@ -1,3 +1,5 @@
+import { usePassageStore } from '~/stores/passage'
+
 /**
  * Composable for passage timeline playback
  */
