@@ -17,7 +17,7 @@ on:
       - 'tools/update-layer.ts'
       - 'tools/check-drift-ci.ts'
       - 'tools/generate-favicons.ts'
-      - 'tools/check-setup.js'
+      - 'tools/check-setup.cjs'
       - 'tools/sync-template.ts'
       - '.github/workflows/version-bump.yml'
       - '.github/workflows/reusable-quality.yml'

@@ -53,7 +53,7 @@ const COPY_VERBATIM = [
   'tools/update-layer.ts',
   'tools/check-drift-ci.ts',
   'tools/generate-favicons.ts',
-  'tools/check-setup.js',
+  'tools/check-setup.cjs',
   'tools/validate.ts',
   'tools/init.ts',
 
@@ -107,6 +107,7 @@ const REMOVE_STALE = [
   '.github/workflows/publish-layer.yml',
   '.github/workflows/deploy-showcase.yml',
   '.github/workflows/deploy.yml',
+  'tools/check-setup.js',
   '.github/workflows/reusable-quality.yml',
   '.github/workflows/reusable-deploy.yml',
   '.github/workflows/template-sync-bot.yml',
@@ -391,9 +392,9 @@ jobs:
     let patchCount = 0
 
     const requiredScripts: Record<string, string> = {
-      'predev': 'node tools/check-setup.js',
-      'prebuild': 'node tools/check-setup.js',
-      'predeploy': 'node tools/check-setup.js',
+      'predev': 'node tools/check-setup.cjs',
+      'prebuild': 'node tools/check-setup.cjs',
+      'predeploy': 'node tools/check-setup.cjs',
       'update-layer': 'npx tsx tools/update-layer.ts',
       'generate:favicons': 'npx tsx tools/generate-favicons.ts',
     }
@@ -401,6 +402,10 @@ jobs:
     for (const [name, cmd] of Object.entries(requiredScripts)) {
       if (!scripts[name]) {
         console.log(`  ADD script: "${name}"`)
+        scripts[name] = cmd
+        patchCount++
+      } else if (scripts[name] !== cmd) {
+        console.log(`  UPDATE script: "${name}"`)
         scripts[name] = cmd
         patchCount++
       }
