@@ -179,6 +179,7 @@ export async function exploreSchema(
         .map(r => r._value as string)
         .filter((name): name is string => typeof name === 'string' && name.length > 0)
 
+    /* eslint-disable nuxt-guardrails/no-map-async-in-server -- Parallel InfluxDB schema queries, not a DB N+1 */
     const measurements = await Promise.all(
         measurementNames.map(async (name) => {
             try {
@@ -202,6 +203,7 @@ export async function exploreSchema(
             }
         }),
     )
+    /* eslint-enable nuxt-guardrails/no-map-async-in-server */
 
     return { measurements }
 }

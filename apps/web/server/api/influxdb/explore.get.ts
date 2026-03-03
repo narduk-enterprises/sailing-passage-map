@@ -1,12 +1,19 @@
 import { InfluxDB, flux } from '@influxdata/influxdb-client'
+import { z } from 'zod'
+
+const querySchema = z.object({
+    startTime: z.string().optional().default('2025-06-26T00:00:00Z'),
+    endTime: z.string().optional().default('2025-07-05T00:00:00Z'),
+    limit: z.coerce.number().int().positive().optional().default(10),
+})
 
 export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig()
-    const query = getQuery(event)
+    const query = querySchema.parse(getQuery(event))
 
-    const startTime = (query.startTime as string) || '2025-06-26T00:00:00Z'
-    const endTime = (query.endTime as string) || '2025-07-05T00:00:00Z'
-    const limit = query.limit ? Number.parseInt(query.limit as string) : 10
+    const startTime = query.startTime
+    const endTime = query.endTime
+    const limit = query.limit
 
     if (!config.influxToken || !config.influxOrgId || !config.influxBucket) {
         throw createError({

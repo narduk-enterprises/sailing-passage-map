@@ -7,11 +7,23 @@ defineProps<{
   passages: Passage[]
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: [passage: Passage]
 }>()
 
 const store = usePassageStore()
+
+function isActive(passageId: string): boolean {
+  return store.selectedPassage.value?.id === passageId
+}
+
+function onSelect(passage: Passage) {
+  emit('select', passage)
+}
+
+function formatDistance(distance: number): string {
+  return distance.toFixed(1)
+}
 </script>
 
 <template>
@@ -20,13 +32,13 @@ const store = usePassageStore()
       v-for="passage in passages"
       :key="passage.id"
       class="pm-passage-item"
-      :class="{ active: store.selectedPassage.value?.id === passage.id }"
-      @click="$emit('select', passage)"
+      :class="{ active: isActive(passage.id) }"
+      @click="onSelect(passage)"
     >
       <div class="pm-passage-name">{{ passage.name || 'Unnamed Passage' }}</div>
       <div class="pm-passage-meta">
         <span class="pm-passage-stat">📅 {{ formatDate(passage.startTime) }}</span>
-        <span class="pm-passage-stat">📏 {{ passage.distance.toFixed(1) }} nm</span>
+        <span class="pm-passage-stat">📏 {{ formatDistance(passage.distance) }} nm</span>
         <span class="pm-passage-stat">⏱ {{ formatDuration(passage.duration) }}</span>
       </div>
     </div>

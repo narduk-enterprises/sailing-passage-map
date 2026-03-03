@@ -37,6 +37,7 @@ export function useInfluxExplorer() {
             const data = await $fetch<{ results: Record<string, unknown>[]; count: number }>('/api/influxdb/explore', {
                 method: 'POST',
                 body: { query: query.value },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
             })
             results.value = data.results
         }

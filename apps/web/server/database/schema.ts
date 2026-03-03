@@ -5,10 +5,11 @@
  * drizzle-kit can discover them from this workspace. App-specific
  * tables for passage tracking are defined below.
  */
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+
 export * from '#layer/server/database/schema'
 
 // ─── Passage Tracking Tables ────────────────────────────────────
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 
 export const passages = sqliteTable('passages', {
     id: text('id').primaryKey().notNull(),

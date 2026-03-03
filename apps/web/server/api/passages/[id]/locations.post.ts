@@ -1,6 +1,24 @@
 import { getCloudflareEnv } from '#server/utils/cloudflareEnv'
 import { getD2Database, insertPassageLocations } from '#server/utils/d2Storage'
 import { getPassagesStorage } from '#server/utils/storage'
+import { z } from 'zod'
+
+const locationSchema = z.object({
+    lat: z.number(),
+    lon: z.number(),
+    time: z.string().optional(),
+    name: z.string().optional(),
+    locality: z.string().optional(),
+    administrativeArea: z.string().optional(),
+    country: z.string().optional(),
+    countryCode: z.string().optional(),
+    formattedAddress: z.string().optional(),
+    pointsOfInterest: z.string().optional(),
+})
+
+const bodySchema = z.object({
+    locations: z.array(locationSchema).min(1, 'At least one location is required'),
+})
 
 export default defineEventHandler(async (event) => {
     const id = getRouterParam(event, 'id')
@@ -8,12 +26,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Passage ID is required' })
     }
 
-    const body = await readBody(event)
-    const { locations } = body || {}
-
-    if (!Array.isArray(locations)) {
-        throw createError({ statusCode: 400, statusMessage: 'locations array is required' })
-    }
+    const { locations } = bodySchema.parse(await readBody(event))
 
     const env = getCloudflareEnv(event)
     const config = useRuntimeConfig()
@@ -26,7 +39,18 @@ export default defineEventHandler(async (event) => {
         // Save to D2 if available
         const d2Db = getD2Database(env)
         if (d2Db) {
-            await insertPassageLocations(d2Db, id, locations)
+            const d2Locations = locations.map(loc => ({
+                coordinate: { lat: loc.lat, lon: loc.lon },
+                time: loc.time ?? '',
+                name: loc.name,
+                locality: loc.locality,
+                administrativeArea: loc.administrativeArea,
+                country: loc.country,
+                countryCode: loc.countryCode,
+                formattedAddress: loc.formattedAddress,
+                pointsOfInterest: loc.pointsOfInterest ? [loc.pointsOfInterest] : undefined,
+            }))
+            await insertPassageLocations(d2Db, id, d2Locations)
         }
 
         // Also update R2/S3 storage

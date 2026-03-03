@@ -63,7 +63,7 @@ export function usePassageOverlays(map: Ref<mapkit.Map | null>) {
     /**
      * Update boat position annotation
      */
-    function updateBoatPosition(lat: number, lon: number, heading?: number) {
+    function updateBoatPosition(lat: number, lon: number, _heading?: number) {
         if (!map.value) return
 
         const coordinate = new mapkit.Coordinate(lat, lon)
