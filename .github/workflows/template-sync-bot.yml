@@ -40,6 +40,10 @@ jobs:
       matrix:
         repo:
           - neon-sewer-raid
+          - old-austin-grouch
+          - ogpreview-app
+          - imessage-dictionary
+          - narduk-enterprises-portfolio
           - drift-map
           - tiny-invoice
           - enigma-box
