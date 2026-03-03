@@ -38,7 +38,7 @@
   ],
   "routes": [
     {
-      "pattern": "tideye.com",
+      "pattern": "passages.nard.uk",
       "custom_domain": true
     }
   ]
