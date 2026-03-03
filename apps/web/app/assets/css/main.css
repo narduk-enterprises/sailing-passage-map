@@ -2,29 +2,29 @@
    Sailing Passage Map — App Tokens & Overrides
    ────────────────────────────────────────────── */
 
-/* Nautical dark theme tokens */
+/* Nautical light theme tokens */
 :root {
-  --pm-bg: #0a0f1a;
-  --pm-surface: #111827;
-  --pm-surface-raised: #1e293b;
-  --pm-border: #374151;
-  --pm-border-subtle: #1f2937;
-  --pm-text: #f1f5f9;
-  --pm-text-muted: #94a3b8;
-  --pm-text-dim: #64748b;
-  --pm-accent: #3b82f6;
-  --pm-accent-hover: #2563eb;
+  --pm-bg: #f8fafc;
+  --pm-surface: #ffffff;
+  --pm-surface-raised: #f1f5f9;
+  --pm-border: #e2e8f0;
+  --pm-border-subtle: #f1f5f9;
+  --pm-text: #0f172a;
+  --pm-text-muted: #64748b;
+  --pm-text-dim: #94a3b8;
+  --pm-accent: #2563eb;
+  --pm-accent-hover: #1d4ed8;
   --pm-ocean: #0ea5e9;
   --pm-warning: #f59e0b;
-  --pm-danger: #ef4444;
-  --pm-success: #22c55e;
+  --pm-danger: #dc2626;
+  --pm-success: #16a34a;
   --pm-radius: 0.75rem;
   --pm-sidebar-w: 340px;
   --pm-timeline-h: 140px;
   --pm-header-h: 56px;
-  --pm-glass: rgba(17, 24, 39, 0.85);
-  --pm-glass-border: rgba(55, 65, 81, 0.4);
-  --pm-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --pm-glass: rgba(255, 255, 255, 0.85);
+  --pm-glass-border: rgba(226, 232, 240, 0.4);
+  --pm-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* Full-bleed layout */
@@ -306,7 +306,9 @@ body,
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Responsive ────────────────────────────── */
