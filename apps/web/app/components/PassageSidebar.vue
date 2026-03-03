@@ -1,3 +1,13 @@
+<script setup lang="ts">
+import { usePassages } from '~/composables/passages/usePassages'
+
+const { passages, selectedPassage, loading, error, fetchPassages, selectPassage, clearSelection } = usePassages()
+
+onMounted(() => {
+  fetchPassages()
+})
+</script>
+
 <template>
   <div>
     <div class="pm-sidebar-header">
@@ -14,20 +24,17 @@
       <!-- Error state -->
       <div v-else-if="error" class="pm-empty" style="min-height: 200px;">
         <span style="color: var(--pm-danger);">{{ error }}</span>
-        <button class="pm-play-btn" style="width: auto; border-radius: var(--pm-radius); padding: 0.5rem 1rem;" @click="fetchPassages">
+        <UButton variant="outline" @click="fetchPassages">
           Retry
-        </button>
+        </UButton>
       </div>
 
       <!-- Passage details when selected -->
       <div v-else-if="selectedPassage">
         <PassageInfo :passage="selectedPassage" />
-        <button
-          style="width: 100%; margin-top: 1rem; padding: 0.5rem; background: var(--pm-surface-raised); border: 1px solid var(--pm-border); border-radius: var(--pm-radius); color: var(--pm-text-muted); cursor: pointer;"
-          @click="clearSelection"
-        >
+        <UButton variant="outline" class="w-full mt-4" @click="clearSelection">
           ← Back to List
-        </button>
+        </UButton>
       </div>
 
       <!-- Empty state -->
@@ -43,13 +50,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { usePassages } from '~/composables/passages/usePassages'
-
-const { passages, selectedPassage, loading, error, fetchPassages, selectPassage, clearSelection } = usePassages()
-
-onMounted(() => {
-  fetchPassages()
-})
-</script>

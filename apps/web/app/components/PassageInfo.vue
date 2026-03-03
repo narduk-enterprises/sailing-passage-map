@@ -1,3 +1,12 @@
+<script setup lang="ts">
+import type { Passage } from '~/types/passage'
+import { formatDuration, formatDateRange } from '~/utils/dateHelpers'
+
+defineProps<{
+  passage: Passage
+}>()
+</script>
+
 <template>
   <div>
     <div class="pm-detail-card" style="margin-bottom: 1rem;">
@@ -43,12 +52,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import type { Passage } from '~/types/passage'
-import { formatDuration, formatDateRange } from '~/utils/dateHelpers'
-
-defineProps<{
-  passage: Passage
-}>()
-</script>

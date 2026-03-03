@@ -1,4 +1,6 @@
-import type { VesselEncounter, PassageEncounters } from '~/types/vessel-encounter'
+import type { VesselEncounter } from '~/types/vessel-encounter'
+import { useVesselStore } from '~/stores/vessel'
+import { usePassageStore } from '~/stores/passage'
 import { loadVesselEncounters } from '~/utils/passageLoader'
 
 /**
