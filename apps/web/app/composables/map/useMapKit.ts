@@ -18,7 +18,7 @@ export function useMapKit() {
             await waitForMapKit()
 
             // Get JWT token
-            const { token } = await $fetch<{ token: string }>('/api/mapkit/token')
+            const { token } = await $fetch<{ token: string }>('/api/mapkit-token')
 
             // Initialize MapKit
             mapkit.init({
