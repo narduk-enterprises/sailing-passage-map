@@ -1,30 +1,38 @@
+<template>
+  <NuxtLayout>
+    <PassageShell>
+      <template #sidebar>
+        <ClientOnly>
+          <PassageSidebar />
+        </ClientOnly>
+      </template>
+
+      <template #map>
+        <ClientOnly>
+          <PassageMap />
+          <template #fallback>
+            <div class="pm-loading" style="height: 100%;">
+              <div class="pm-loading-spinner" />
+              <span>Loading map…</span>
+            </div>
+          </template>
+        </ClientOnly>
+      </template>
+
+      <template #timeline>
+        <ClientOnly>
+          <PassageTimelineEnhanced />
+        </ClientOnly>
+      </template>
+    </PassageShell>
+  </NuxtLayout>
+</template>
+
 <script setup lang="ts">
-useSeo({
-  title: 'Welcome to the Nuxt 4 Template',
-  description: 'Built with Nuxt 4, Nuxt UI 4, and Cloudflare Workers.',
-})
-useWebPageSchema({
-  name: 'Welcome to the Nuxt 4 Template',
-  description: 'Built with Nuxt 4, Nuxt UI 4, and Cloudflare Workers.',
+useSeoMeta({
+  title: 'Passage Map — Sailing Track Viewer',
+  description: 'Interactive sailing passage map with vessel tracking, AIS encounter data, and passage history visualization.',
+  ogTitle: 'Sailing Passage Map',
+  ogDescription: 'Interactive sailing passage map with vessel tracking and animated timeline playback.',
 })
 </script>
-
-<template>
-  <UPage>
-    <UPageHero
-      title="Nuxt 4 Template"
-      description="Built with Nuxt 4, Nuxt UI 4, Tailwind CSS 4, and deployed on Cloudflare Workers with D1."
-    >
-      <template #links>
-        <UButton
-          to="https://ui.nuxt.com"
-          target="_blank"
-          icon="i-lucide-book-open"
-          color="neutral"
-        >
-          Nuxt UI Docs
-        </UButton>
-      </template>
-    </UPageHero>
-  </UPage>
-</template>
