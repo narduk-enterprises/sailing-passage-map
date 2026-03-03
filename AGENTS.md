@@ -258,6 +258,8 @@ Follow these steps **in order** — the init script handles renaming, D1 provisi
 7. Start dev: `doppler run -- pnpm run dev`
 8. Verify infrastructure: `pnpm run validate`
 
+> **🛡️ Bootstrap Guard:** `pnpm dev`, `pnpm build`, and `pnpm deploy` are **blocked** until `pnpm run setup` has been completed. The setup script writes a `.setup-complete` sentinel file; the `pre*` hooks in `package.json` check for it. If you see a "PROJECT SETUP NOT COMPLETE" error, follow steps 1–4 above.
+
 > **❌ GitHub Actions CI Preflight Failures:**
 > The `ci.yml` deploy job requires a `DOPPLER_TOKEN` (recommended) or `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` in your GitHub repository secrets. If they are missing, the deploy will fail at the "preflight" step.
 > The `pnpm run setup` script tries to create the `DOPPLER_TOKEN` in GitHub automatically (Step 6), but it **will skip this step if you have not set up your git remote** (Step 2).

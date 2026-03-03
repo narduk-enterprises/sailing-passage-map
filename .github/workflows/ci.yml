@@ -47,6 +47,27 @@ jobs:
       - name: Unit Tests
         run: pnpm -r --if-present test:unit
 
+  drift-check:
+    name: Template Drift Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check for template drift
+        run: npx tsx tools/check-drift-ci.ts
+
   # ── Deploy pipeline (push to main only) ──
 
   preflight:

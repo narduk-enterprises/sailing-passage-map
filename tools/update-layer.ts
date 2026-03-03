@@ -9,14 +9,17 @@ import { fileURLToPath } from 'node:url'
  * Pulls the latest layers/narduk-nuxt-layer from the template repository.
  * 
  * Usage:
- *   pnpm run update-layer
+ *   pnpm run update-layer                # fetch and apply layer update
+ *   pnpm run update-layer -- --dry-run   # show what would change without applying
  * 
  * Options:
+ *   --dry-run            Show diff without applying changes
  *   --no-rewrite-repo    Skip rewriting layers/narduk-nuxt-layer/package.json's repository.url
  */
 
 const args = process.argv.slice(2)
 const skipRewrite = args.includes('--no-rewrite-repo')
+const dryRun = args.includes('--dry-run')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = path.resolve(__dirname, '..')
@@ -59,6 +62,29 @@ async function main() {
   console.log('\n📥 Fetching latest layer code...')
   run('git fetch template main')
 
+  // 2.5. Dry-run: show diff and exit without modifying anything
+  if (dryRun) {
+    console.log('\n📋 Dry-run mode — showing what would change:\n')
+    const currentSha = getOutput('git rev-parse HEAD:layers/narduk-nuxt-layer 2>/dev/null || echo none')
+    const templateSha = getOutput('git rev-parse template/main')
+    const templateLayerSha = getOutput('git rev-parse template/main:layers/narduk-nuxt-layer 2>/dev/null || echo none')
+
+    console.log(`  Current layer tree:  ${currentSha.slice(0, 12)}`)
+    console.log(`  Template layer tree: ${templateLayerSha.slice(0, 12)}`)
+    console.log(`  Template HEAD:       ${templateSha.slice(0, 12)}`)
+
+    if (currentSha === templateLayerSha) {
+      console.log('\n  ✅ Layer is already up to date — no changes needed.')
+    } else {
+      console.log('\n  Changed files:\n')
+      const diff = getOutput('git diff HEAD -- layers/narduk-nuxt-layer || true')
+      const diffAgainstTemplate = getOutput('git diff HEAD:layers/narduk-nuxt-layer template/main:layers/narduk-nuxt-layer --stat 2>/dev/null || echo "  (unable to compute stat diff)"')
+      console.log(diffAgainstTemplate || '  (no stat diff available)')
+      console.log('\n  Run without --dry-run to apply these changes.')
+    }
+    return
+  }
+
   // 3. Checkout layers/narduk-nuxt-layer
   console.log('\n📂 Checking out layers/narduk-nuxt-layer...')
   run('git checkout template/main -- layers/narduk-nuxt-layer')
@@ -94,7 +120,26 @@ async function main() {
     console.log('\n⏭ Skipping repository rewrite (--no-rewrite-repo flag provided).')
   }
 
-  // 5. pnpm install
+  // 5. Update .template-version with the fetched SHA
+  console.log('\n📌 Recording template version...')
+  try {
+    const templateSha = getOutput('git rev-parse template/main')
+    if (templateSha) {
+      const versionContent = [
+        `sha=${templateSha}`,
+        `template=narduk-nuxt-template`,
+        `updated=${new Date().toISOString()}`,
+        '',
+      ].join('\n')
+      await fs.writeFile(path.join(ROOT_DIR, '.template-version'), versionContent, 'utf-8')
+      run('git add .template-version')
+      console.log(`  ✅ Recorded template SHA: ${templateSha.slice(0, 12)}`)
+    }
+  } catch (e: any) {
+    console.warn(`  ⚠️ Could not record template version: ${e.message}`)
+  }
+
+  // 6. pnpm install
   console.log('\n📦 Running pnpm install to sync dependencies...')
   run('pnpm install')
 

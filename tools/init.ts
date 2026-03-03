@@ -92,7 +92,7 @@ const LAYER_PACKAGE_PLACEHOLDER = '__LAYER_PKG_PLACEHOLDER__'
 const REPLACEMENTS = [
   // 1. Temporarily replace the protected layer package name with a safe placeholder
   { from: /@loganrenz\/narduk-nuxt-template-layer/g, to: LAYER_PACKAGE_PLACEHOLDER },
-  
+
   // 2. Perform all standard project renames
   { from: /narduk-nuxt-template-examples-db/g, to: `${APP_NAME}-examples-db` },
   { from: /narduk-nuxt-template-examples/g, to: `${APP_NAME}-examples` },
@@ -105,7 +105,7 @@ const REPLACEMENTS = [
   { from: /Nuxt 4 Demo/g, to: DISPLAY_NAME },
   // Template-specific site description — replace with a generic one the agent can customize.
   { from: /A production-ready demo template showcasing Nuxt 4, Nuxt UI 4, Tailwind CSS 4, and Cloudflare Workers with D1 database\./g, to: `${DISPLAY_NAME} — powered by Nuxt 4 and Cloudflare Workers.` },
-  
+
   // 3. Restore the protected layer package name
   { from: new RegExp(LAYER_PACKAGE_PLACEHOLDER, 'g'), to: LAYER_PACKAGE },
 ]
@@ -118,12 +118,12 @@ const ROOT_DIR = path.resolve(__dirname, '..')
 async function walkDir(dir: string): Promise<string[]> {
   const omitDirs = new Set(['node_modules', '.git', '.nuxt', '.output', 'dist', 'playwright-report', 'test-results', '.DS_Store'])
   const files: string[] = []
-  
+
   const entries = await fs.readdir(dir, { withFileTypes: true })
-  
+
   for (const entry of entries) {
     if (omitDirs.has(entry.name)) continue
-    
+
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
       files.push(...await walkDir(fullPath))
@@ -201,7 +201,7 @@ async function main() {
   }
 
   console.log(`\n🚀 Initializing: ${DISPLAY_NAME} (${APP_NAME})${REPAIR_MODE ? ' [REPAIR MODE]' : ''}`)
-  
+
   // 1. Recursive String Replacement
   if (REPAIR_MODE) {
     console.log('\nStep 1/10: Replacing boilerplate strings... ⏭ skipped (--repair)')
@@ -582,7 +582,7 @@ Pushes to \`main\` are automatically built and deployed via the GitHub Actions C
         } else {
           console.log('  Installing ephemeral dependencies (googleapis, google-auth-library)...')
           execSync('pnpm add -w --save-dev googleapis google-auth-library', { encoding: 'utf-8', stdio: 'pipe' })
-          
+
           console.log('  Executing Narduk Analytics provisioning pipeline...')
           // Run against the app's own Doppler project (prd config) so SITE_URL, GSC creds,
           // and hub references all resolve correctly. Command is `all`, not `setup:all`.
@@ -612,7 +612,7 @@ Pushes to \`main\` are automatically built and deployed via the GitHub Actions C
     if (await fs.stat(webFaviconSvg).then(() => true).catch(() => false)) {
       console.log('  Installing ephemeral dependencies (sharp)...')
       execSync('pnpm add -w --save-dev sharp', { encoding: 'utf-8', stdio: 'pipe' })
-      
+
       execSync(
         `npx tsx tools/generate-favicons.ts --target=apps/web/public --name="${DISPLAY_NAME}" --short-name="${DISPLAY_NAME.slice(0, 12)}"`,
         { stdio: 'inherit', cwd: ROOT_DIR }
@@ -638,7 +638,7 @@ Pushes to \`main\` are automatically built and deployed via the GitHub Actions C
       const dirsToRemove = [
         path.join(ROOT_DIR, 'apps', 'showcase'),
       ]
-      
+
       const appsContent = await fs.readdir(path.join(ROOT_DIR, 'apps'), { withFileTypes: true }).catch(() => [])
       for (const entry of appsContent) {
         if (entry.isDirectory() && entry.name.startsWith('example-')) {
@@ -695,16 +695,44 @@ Pushes to \`main\` are automatically built and deployed via the GitHub Actions C
         }
       }
 
-      // Strip deploy-examples and deploy-showcase jobs from ci.yml so CI does not fail after example apps are removed
+      // Replace ci.yml with a slim version that calls reusable workflows from the template repo.
+      // This eliminates CI drift — when the template updates its workflows, all derived apps benefit.
       const ciYamlPath = path.join(ROOT_DIR, '.github', 'workflows', 'ci.yml')
       try {
-        let ciYamlContent = await fs.readFile(ciYamlPath, 'utf-8')
-        if (ciYamlContent.includes('deploy-examples:')) {
-          ciYamlContent = ciYamlContent.replace(/\n  deploy-examples:[\s\S]*/m, '')
-          await fs.writeFile(ciYamlPath, ciYamlContent, 'utf-8')
-        }
+        const slimCi = `name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    uses: loganrenz/narduk-nuxt-template/.github/workflows/reusable-quality.yml@main
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: [quality]
+    uses: loganrenz/narduk-nuxt-template/.github/workflows/reusable-deploy.yml@main
+    secrets:
+      DOPPLER_TOKEN: \${{ secrets.DOPPLER_TOKEN }}
+      CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+`
+        await fs.writeFile(ciYamlPath, slimCi, 'utf-8')
       } catch (ciErr: any) {
         console.warn(`  ⚠️ Could not update ci.yml: ${ciErr.message}`)
+      }
+
+      // Remove reusable workflow definitions (they live in the template repo, not derived apps)
+      for (const wf of ['reusable-quality.yml', 'reusable-deploy.yml']) {
+        await fs.rm(path.join(ROOT_DIR, '.github', 'workflows', wf), { force: true })
       }
 
       // Rewrite playwright.config.ts to simple web configuration
@@ -748,6 +776,24 @@ export default defineConfig({
   }
 
   // 10. Done (script is kept for re-runs)
+  // Write the bootstrap sentinel so pre* hooks allow dev/build/deploy
+  await fs.writeFile(path.join(ROOT_DIR, '.setup-complete'), `initialized=${new Date().toISOString()}\napp=${APP_NAME}\n`, 'utf-8')
+
+  // Record the template SHA this app was spawned from (used by drift detection in CI)
+  let templateSha = ''
+  try {
+    templateSha = execSync('git rev-parse HEAD', { encoding: 'utf-8', stdio: 'pipe', cwd: ROOT_DIR }).trim()
+  } catch { /* pre-init state — no commits yet */ }
+
+  const templateVersionContent = [
+    `sha=${templateSha || 'unknown'}`,
+    `template=narduk-nuxt-template`,
+    `spawned=${new Date().toISOString()}`,
+    `app=${APP_NAME}`,
+    '',
+  ].join('\n')
+  await fs.writeFile(path.join(ROOT_DIR, '.template-version'), templateVersionContent, 'utf-8')
+
   console.log('\nStep 10/10: Complete!')
   console.log('  ℹ️  init.ts is kept for re-runs. Use --repair to re-run infra steps only.')
 

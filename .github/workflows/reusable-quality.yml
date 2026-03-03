@@ -1,0 +1,75 @@
+name: Reusable Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version'
+        required: false
+        type: string
+        default: '22'
+      run-drift-check:
+        description: 'Run template drift detection'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  NUXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  quality:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prepare Nuxt types
+        run: |
+          for cfg in apps/*/nuxt.config.ts layers/*/nuxt.config.ts; do
+            [ -f "$cfg" ] || continue
+            dir="$(dirname "$cfg")"
+            echo "::group::nuxt prepare — $dir"
+            (cd "$dir" && pnpm exec nuxt prepare)
+            echo "::endgroup::"
+          done
+
+      - name: Lint & Typecheck
+        run: pnpm quality
+
+      - name: Unit Tests
+        run: pnpm -r --if-present test:unit
+
+  drift-check:
+    name: Template Drift Check
+    if: inputs.run-drift-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check for template drift
+        run: npx tsx tools/check-drift-ci.ts
