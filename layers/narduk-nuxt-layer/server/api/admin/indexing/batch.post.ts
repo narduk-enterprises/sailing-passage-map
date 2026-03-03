@@ -1,6 +1,5 @@
 import { z } from 'zod'
-// @ts-expect-error Nuxt auto-imports vs Vitest resolution conflict
-import { INDEXING_SCOPES } from '../../utils/google'
+import { INDEXING_SCOPES } from '#imports'
 
 const bodySchema = z.object({
     urls: z.array(z.string().url()).min(1).max(100),
