@@ -3,7 +3,7 @@
 **sailing-passage-map** — initialized from `narduk-nuxt-template`.
 
 ## Live Site
-[https://tideye.com](https://tideye.com)
+[https://passages.nard.uk](https://passages.nard.uk)
 
 ## Local Development
 
