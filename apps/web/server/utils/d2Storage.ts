@@ -41,14 +41,14 @@ export interface D2ExecResult {
 export function getD2Database(env?: Record<string, unknown>): D2Database | null {
     if (!env) return null
 
-    let db = (env.passage_map_db || env.PASSAGES_DB) as D2Database | undefined
+    let db = (env.DB || env.passage_map_db || env.PASSAGES_DB) as D2Database | undefined
 
     if (!db) {
         const cfEnv = (env as Record<string, unknown>).cloudflare as
             | { env?: Record<string, unknown> }
             | undefined
         if (cfEnv?.env) {
-            db = (cfEnv.env.passage_map_db || cfEnv.env.PASSAGES_DB) as D2Database | undefined
+            db = (cfEnv.env.DB || cfEnv.env.passage_map_db || cfEnv.env.PASSAGES_DB) as D2Database | undefined
         }
     }
 

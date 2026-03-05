@@ -3,7 +3,7 @@
  * Handles initialization and provides the map instance
  */
 export function useMapKit() {
-    const map = ref<mapkit.Map | null>(null)
+    const map = shallowRef<mapkit.Map | null>(null)
     const isReady = ref(false)
     const error = ref<string | null>(null)
 

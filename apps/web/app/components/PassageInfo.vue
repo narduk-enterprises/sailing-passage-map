@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Passage, LocationInfo } from '~/types/passage'
 import { formatDuration, formatDateRange } from '~/utils/dateHelpers'
+import { haversineDistance } from '~/utils/mapGeometry'
 
 const props = defineProps<{
   passage: Passage
@@ -11,6 +12,44 @@ const dateRangeDisplay = computed(() => formatDateRange(props.passage.startTime,
 function formatLocationArea(loc: LocationInfo): string {
   return [loc.administrativeArea, loc.country].filter(Boolean).join(', ')
 }
+
+const calculatedDistance = computed(() => {
+  if (!props.passage.positions || props.passage.positions.length < 2) {
+    return props.passage.distance
+  }
+  let totalNm = 0
+  for (let i = 1; i < props.passage.positions.length; i++) {
+    const prev = props.passage.positions[i - 1]!
+    const curr = props.passage.positions[i]!
+    totalNm += haversineDistance(prev.lat, prev.lon, curr.lat, curr.lon)
+  }
+  return totalNm
+})
+
+const calculatedAvgSpeed = computed(() => {
+  if (calculatedDistance.value > 0 && props.passage.duration > 0) {
+    return calculatedDistance.value / props.passage.duration
+  }
+  return props.passage.avgSpeed
+})
+
+const calculatedMaxSpeed = computed(() => {
+  if (!props.passage.positions || props.passage.positions.length < 2) {
+    return props.passage.maxSpeed
+  }
+  let maxKnots = 0
+  for (let i = 1; i < props.passage.positions.length; i++) {
+    const prev = props.passage.positions[i - 1]!
+    const curr = props.passage.positions[i]!
+    const dist = haversineDistance(prev.lat, prev.lon, curr.lat, curr.lon)
+    const timeHr = (new Date(curr._time).getTime() - new Date(prev._time).getTime()) / (1000 * 60 * 60)
+    if (timeHr > 0) {
+      const speed = dist / timeHr
+      if (speed > maxKnots) maxKnots = speed
+    }
+  }
+  return maxKnots > 0 && maxKnots < 50 ? maxKnots : props.passage.maxSpeed
+})
 </script>
 
 <template>
@@ -19,7 +58,7 @@ function formatLocationArea(loc: LocationInfo): string {
       <h3>Passage Details</h3>
       <div class="pm-detail-grid">
         <div>
-          <div class="pm-detail-value">{{ props.passage.distance.toFixed(1) }}</div>
+          <div class="pm-detail-value">{{ calculatedDistance.toFixed(1) }}</div>
           <div class="pm-detail-label">nm distance</div>
         </div>
         <div>
@@ -27,11 +66,11 @@ function formatLocationArea(loc: LocationInfo): string {
           <div class="pm-detail-label">duration</div>
         </div>
         <div>
-          <div class="pm-detail-value">{{ props.passage.avgSpeed.toFixed(1) }}</div>
+          <div class="pm-detail-value">{{ calculatedAvgSpeed.toFixed(1) }}</div>
           <div class="pm-detail-label">avg speed (kn)</div>
         </div>
         <div>
-          <div class="pm-detail-value">{{ props.passage.maxSpeed.toFixed(1) }}</div>
+          <div class="pm-detail-value">{{ calculatedMaxSpeed.toFixed(1) }}</div>
           <div class="pm-detail-label">max speed (kn)</div>
         </div>
       </div>

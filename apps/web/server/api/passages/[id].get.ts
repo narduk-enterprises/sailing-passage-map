@@ -2,6 +2,95 @@ import { getCloudflareEnv } from '#server/utils/cloudflareEnv'
 import { getPassagesStorage, getVesselDataStorage } from '#server/utils/storage'
 import { getD2Database, getPassageFromD2 } from '#server/utils/d2Storage'
 import { getD2ApiClient } from '#server/utils/d2ApiClient'
+import { interpolatePosition } from '~/utils/mapHelpers'
+import type { PassagePosition } from '~/types/passage'
+
+// Helper to generate fake encounters for local dev testing
+function generateMockEncounters(passage: Record<string, unknown>) {
+    const positions = passage.positions as Array<Record<string, unknown>>
+    if (!positions || positions.length < 10) return null
+    if (!passage.startTime || !passage.endTime) return null
+
+    const timeRange = {
+        start: passage.startTime as string,
+        end: passage.endTime as string,
+    }
+    
+    // Pick a point in the middle of the passage to base our fake ship around
+    const midPointIdx = Math.floor(positions.length / 2)
+    const midPos = positions[midPointIdx]!
+    const midTimeMs = new Date((midPos._time || midPos.time) as string).getTime()
+
+    // 1 hour encounter
+    const startEncounterMs = midTimeMs - (1000 * 60 * 30)
+    const endEncounterMs = midTimeMs + (1000 * 60 * 30)
+    
+    const segmentPositions = []
+    
+    // Generate 10 positions for the fake ship
+    for (let i = 0; i <= 10; i++) {
+        const timeMs = startEncounterMs + ((endEncounterMs - startEncounterMs) * (i / 10))
+        // Position it slightly off from our own boat's interpolated position
+        const myBoatPos = interpolatePosition(positions as unknown as PassagePosition[], new Date(timeMs).toISOString())
+       
+        if (myBoatPos) {
+           segmentPositions.push({
+               time: new Date(timeMs).toISOString(),
+               lat: myBoatPos.lat + (0.01 * (i - 5)), // move lat slightly
+               lon: myBoatPos.lon + 0.02,             // offset lon
+               speed: 12.5,
+               heading: myBoatPos.heading ? (myBoatPos.heading + 180) % 360 : 180,
+               cog: myBoatPos.heading ? (myBoatPos.heading + 180) % 360 : 180,
+           })
+        }
+    }
+    
+    return {
+        passageId: passage.id,
+        passageName: passage.name,
+        generated: new Date().toISOString(),
+        timeRange,
+        vessels: [
+            {
+                vesselId: 'mock-tanker-123',
+                displayName: 'DEV MOCK TANKER',
+                metadata: {
+                    mmsi: '123456789',
+                    name: 'DEV MOCK TANKER',
+                    shipType: 80, // Tanker
+                    length: 250,
+                },
+                firstSeen: new Date(startEncounterMs).toISOString(),
+                lastSeen: new Date(endEncounterMs).toISOString(),
+                minDistance: 0.5,
+                maxSpeed: 12.5,
+                totalPositions: segmentPositions.length,
+                encounterSegments: [
+                    {
+                        startTime: new Date(startEncounterMs).toISOString(),
+                        endTime: new Date(endEncounterMs).toISOString(),
+                        positions: segmentPositions,
+                        closestApproach: {
+                            time: new Date(midTimeMs).toISOString(),
+                            distance: 0.5,
+                            ownPosition: { lat: midPos.lat, lon: midPos.lon },
+                            vesselPosition: { lat: segmentPositions[5]?.lat || midPos.lat, lon: segmentPositions[5]?.lon || midPos.lon }
+                        }
+                    }
+                ]
+            }
+        ],
+        summary: {
+           totalVessels: 1,
+           totalEncounterSegments: 1,
+           closestApproach: {
+               vesselId: 'mock-tanker-123',
+               distance: 0.5,
+               time: new Date(midTimeMs).toISOString()
+           }
+        }
+    }
+}
 
 export default defineEventHandler(async (event) => {
     const id = getRouterParam(event, 'id')
@@ -23,7 +112,7 @@ export default defineEventHandler(async (event) => {
             const result = await getPassageFromD2(d2Db, id)
             if (result) {
                 const p = result.passage
-                return {
+                const formattedPassage = {
                     id: p.id,
                     startTime: p.start_time,
                     endTime: p.end_time,
@@ -60,6 +149,23 @@ export default defineEventHandler(async (event) => {
                         pointsOfInterest: loc.points_of_interest ? JSON.parse(loc.points_of_interest as string) : undefined,
                     })),
                 }
+
+                // Append encounters if they exist
+                if (p.encounters_filename) {
+                    const vesselStorage = getVesselDataStorage(env, storageConfig)
+                    let encounters = await vesselStorage.readJSON(p.encounters_filename as string)
+                    
+                    if (!encounters && import.meta.dev) {
+                        // Generate mock encounters in local dev if bucket is inaccessible
+                        encounters = generateMockEncounters(formattedPassage)
+                    }
+
+                    if (encounters) {
+                        return { ...formattedPassage, encounters }
+                    }
+                }
+
+                return formattedPassage
             }
         }
 

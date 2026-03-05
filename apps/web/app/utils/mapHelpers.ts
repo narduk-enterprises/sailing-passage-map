@@ -1,4 +1,5 @@
 import type { PassagePosition } from '~/types/passage'
+import { haversineDistance, calculateBearing } from './mapGeometry'
 
 /**
  * Get position color based on speed (green for slow, red for fast)
@@ -70,15 +71,32 @@ export function interpolatePosition(
     }
 
     const ratio = (targetMs - prevMs) / (nextMs - prevMs)
+
+    let speed = prev.speed !== undefined && next.speed !== undefined && prev.speed !== null && next.speed !== null
+        ? prev.speed + (next.speed - prev.speed) * ratio
+        : undefined
+
+    if (speed === undefined || speed === null) {
+        const distanceNm = haversineDistance(prev.lat, prev.lon, next.lat, next.lon)
+        const hoursDelta = (nextMs - prevMs) / (1000 * 60 * 60)
+        if (hoursDelta > 0) {
+            speed = distanceNm / hoursDelta
+        }
+    }
+
+    let heading = prev.heading !== undefined && next.heading !== undefined && prev.heading !== null && next.heading !== null
+        ? prev.heading + (next.heading - prev.heading) * ratio
+        : undefined
+
+    if (heading === undefined || heading === null) {
+        heading = calculateBearing(prev.lat, prev.lon, next.lat, next.lon)
+    }
+
     return {
         lat: prev.lat + (next.lat - prev.lat) * ratio,
         lon: prev.lon + (next.lon - prev.lon) * ratio,
-        speed: prev.speed !== undefined && next.speed !== undefined
-            ? prev.speed + (next.speed - prev.speed) * ratio
-            : prev.speed,
-        heading: prev.heading !== undefined && next.heading !== undefined
-            ? prev.heading + (next.heading - prev.heading) * ratio
-            : prev.heading,
+        speed,
+        heading,
     }
 }
 

@@ -19,10 +19,14 @@ export interface StorageAdapter {
  * R2 storage adapter (for production/Cloudflare)
  */
 class R2Storage implements StorageAdapter {
-    constructor(private bucket: R2Bucket) { }
+    constructor(private bucket: R2Bucket, private fallbackAdapter?: StorageAdapter) { }
 
     async readJSON<T = unknown>(key: string): Promise<T | null> {
-        return readR2JSON<T>(this.bucket, key)
+        const result = await readR2JSON<T>(this.bucket, key)
+        if (!result && this.fallbackAdapter) {
+            return this.fallbackAdapter.readJSON<T>(key)
+        }
+        return result
     }
 
     async readText(key: string): Promise<string | null> {
@@ -77,12 +81,7 @@ export function getStorageAdapter(
         }
     }
 
-    // Check if we have a valid R2 bucket binding
-    if (r2Bucket && typeof r2Bucket === 'object' && 'get' in r2Bucket && 'put' in r2Bucket) {
-        return new R2Storage(r2Bucket)
-    }
-
-    // Try R2 S3 API as fallback
+    // Setup R2 S3 API as fallback
     const bucketNames = {
         'passages': 'passage-map-passages',
         'vessel-data': 'passage-map-vessel-data',
@@ -92,8 +91,18 @@ export function getStorageAdapter(
     const r2AccessKeyId = config?.r2AccessKeyId || process.env.R2_ACCESS_KEY_ID
     const r2SecretAccessKey = config?.r2SecretAccessKey || process.env.R2_SECRET_ACCESS_KEY
 
+    let fallbackAdapter: StorageAdapter | undefined
     if (r2AccessKeyId && r2SecretAccessKey) {
-        return new R2S3Storage(bucketNames[bucketName], r2AccessKeyId, r2SecretAccessKey)
+        fallbackAdapter = new R2S3Storage(bucketNames[bucketName], r2AccessKeyId, r2SecretAccessKey)
+    }
+
+    // Check if we have a valid R2 bucket binding
+    if (r2Bucket && typeof r2Bucket === 'object' && 'get' in r2Bucket && 'put' in r2Bucket) {
+        return new R2Storage(r2Bucket, fallbackAdapter)
+    }
+
+    if (fallbackAdapter) {
+        return fallbackAdapter
     }
 
     // No storage available — return a no-op adapter that returns empty results

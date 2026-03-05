@@ -2,6 +2,7 @@
 import { useMapKit } from '~/composables/map/useMapKit'
 import { usePassageOverlays } from '~/composables/map/usePassageOverlays'
 import { usePassageStore } from '~/stores/passage'
+import type { VesselEncounter } from '~/types/vessel-encounter'
 import { interpolatePosition } from '~/utils/mapHelpers'
 
 const mapId = 'passage-map-container'
@@ -24,14 +25,26 @@ watch(
   },
 )
 
-// Watch current time for boat position
+// Watch current time for boat position and encounters
 watch(
   () => store.currentTime.value,
   (time) => {
     if (!time || !store.selectedPassage.value?.positions) return
-    const pos = interpolatePosition(store.selectedPassage.value.positions, time)
+    const passage = store.selectedPassage.value
+    
+    // Draw own boat
+    const pos = interpolatePosition(passage.positions!, time)
     if (pos) {
       overlays.updateBoatPosition(pos.lat, pos.lon, pos.heading)
+    }
+    
+    // Draw encounters if available
+    interface ExtendedPassage {
+      encounters?: { vessels: VesselEncounter[] }
+    }
+    const passageExtended = passage as unknown as ExtendedPassage
+    if (passageExtended.encounters?.vessels) {
+      overlays.updateEncounterPositions(time, passageExtended.encounters.vessels)
     }
   },
 )

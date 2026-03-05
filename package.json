@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.28.0",
   "scripts": {
     "predev": "node tools/check-setup.cjs",
-    "dev": "pnpm --filter web dev",
+    "dev": "doppler run -- pnpm --filter web dev",
     "prebuild": "node tools/check-setup.cjs",
     "build": "doppler run -- pnpm -r build",
     "predeploy": "node tools/check-setup.cjs",
