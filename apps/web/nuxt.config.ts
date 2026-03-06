@@ -25,6 +25,11 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
+    session: {
+      password:
+        process.env.NUXT_SESSION_PASSWORD ||
+        (import.meta.dev ? 'sailing-passage-map-dev-session-min-32-chars' : ''),
+    },
     // MapKit JWT signing
     mapkitDevToken: process.env.MAPKIT_DEV_TOKEN || '',
     mapkitProdToken: process.env.MAPKIT_PROD_TOKEN || '',
