@@ -1,16 +1,2 @@
-# Sailing Passage Map
-
-**sailing-passage-map** — initialized from `narduk-nuxt-template`.
-
-## Live Site
-[https://passages.nard.uk](https://passages.nard.uk)
-
-## Local Development
-
-1. Setup environment variables (e.g. via Doppler)
-2. Run database migration: `pnpm run db:migrate`
-3. Start dev server: `pnpm run dev`
-
-## Deployment
-
-Pushes to `main` are automatically built and deployed via the GitHub Actions CI/CD workflows utilizing `pnpm run deploy`.
+# sailing-passage-map
+Nuxt 4 application deployed on Cloudflare Workers.
