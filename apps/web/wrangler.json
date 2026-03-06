@@ -6,17 +6,15 @@
     "directory": ".output/public"
   },
   "compatibility_date": "2026-03-05",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "sailing-passage-map-db",
-      "database_id": "780d8b62-72d5-4311-8559-31b3e360d070"
+      "database_name": "passage-map-db",
+      "database_id": "6dae99e4-d07d-44f0-96a7-84a66a70ed6b"
     }
   ],
   "r2_buckets": [
