@@ -1065,33 +1065,45 @@ export default defineConfig({
 
   // 9.5. Register with control plane fleet registry
   console.log('\nStep 9.5/10: Registering with control plane fleet registry...')
-  const CONTROL_PLANE_URL = 'https://control-plane.nard.uk'
-  try {
-    const res = await fetch(`${CONTROL_PLANE_URL}/api/fleet/apps`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: APP_NAME,
-        url: SITE_URL,
-        dopplerProject: APP_NAME,
-        githubRepo: `narduk-enterprises/${APP_NAME}`,
-        gaPropertyId: null,
-        posthogAppName: null,
-      }),
-    })
-    if (res.ok) {
-      console.log(`  ✅ Registered ${APP_NAME} with control plane fleet registry.`)
-    } else if (res.status === 409) {
-      console.log(`  ⏭ ${APP_NAME} already registered in fleet registry.`)
-    } else {
-      const text = await res.text().catch(() => '')
-      console.warn(`  ⚠️ Fleet registration returned ${res.status}: ${text}`)
+  const CONTROL_PLANE_URL = process.env.CONTROL_PLANE_URL || 'https://control-plane.nard.uk'
+  const controlPlaneApiKey = process.env.CONTROL_PLANE_API_KEY?.trim()
+  if (!controlPlaneApiKey) {
+    console.log('  ⏭ CONTROL_PLANE_API_KEY not set; skipping automatic registration.')
+    console.log(`     Register manually at ${CONTROL_PLANE_URL}/fleet/manage`)
+  } else {
+    try {
+      const res = await fetch(`${CONTROL_PLANE_URL}/api/fleet/apps`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${controlPlaneApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: APP_NAME,
+          url: SITE_URL,
+          dopplerProject: APP_NAME,
+          githubRepo: `narduk-enterprises/${APP_NAME}`,
+          gaPropertyId: null,
+          posthogAppName: null,
+        }),
+      })
+      if (res.ok) {
+        console.log(`  ✅ Registered ${APP_NAME} with control plane fleet registry.`)
+      } else if (res.status === 409) {
+        console.log(`  ⏭ ${APP_NAME} already registered in fleet registry.`)
+      } else {
+        const text = await res.text().catch(() => '')
+        console.warn(`  ⚠️ Fleet registration returned ${res.status}: ${text}`)
+        console.warn(`     Register manually at ${CONTROL_PLANE_URL}/fleet/manage`)
+      }
+    } catch (err: any) {
+      console.warn(`  ⚠️ Could not register with control plane: ${err.message}`)
       console.warn(`     Register manually at ${CONTROL_PLANE_URL}/fleet/manage`)
     }
-  } catch (err: any) {
-    console.warn(`  ⚠️ Could not register with control plane: ${err.message}`)
-    console.warn(`     Register manually at ${CONTROL_PLANE_URL}/fleet/manage`)
   }
+  console.log(
+    '     If this repo should receive fleet sync PRs, also add it to control-plane/apps/web/server/data/managed-repos.ts.',
+  )
 
   // Build ESLint plugins to ensure dist/ exists (required for linting)
   // .gitignore excludes dist/, so this must run after every fresh clone/init.
