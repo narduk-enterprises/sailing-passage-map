@@ -1,13 +1,25 @@
 import { z } from 'zod'
 
+const DIMENSIONS = ['query', 'page', 'device', 'country', 'searchAppearance'] as const
+
 const querySchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  dimension: z
-    .enum(['query', 'page', 'device', 'country', 'searchAppearance'])
-    .optional()
-    .default('query'),
+  dimension: z.enum(DIMENSIONS).optional().default('query'),
+  noCache: z.coerce.boolean().optional(),
 })
+
+interface GscRow {
+  keys: string[]
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+}
+
+interface GscQueryResponse {
+  rows?: GscRow[]
+}
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -21,40 +33,48 @@ export default defineEventHandler(async (event) => {
 
   const gscSiteUrl = `sc-domain:${new URL(siteUrl).hostname}`
   const query = await getValidatedQuery(event, querySchema.parse)
+  const { startDate, endDate } = resolveAnalyticsDateRange(query)
 
-  const endDate = query.endDate
-    ? String(query.endDate)
-    : (new Date().toISOString().split('T')[0] ?? '')
-  const start = new Date(endDate)
-  start.setDate(start.getDate() - 30)
-  const startDate = query.startDate
-    ? String(query.startDate)
-    : (start.toISOString().split('T')[0] ?? '')
+  const cacheKey = `gsc:perf:${gscSiteUrl}:${query.dimension}:${startDate}:${endDate}`
 
   try {
-    const data = (await googleApiFetch(
-      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
-      GSC_SCOPES,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          startDate,
-          endDate,
-          dimensions: [query.dimension],
-          rowLimit: 50,
-        }),
-      },
-    )) as Record<string, unknown>
+    const { data, cached, fetchedAt } = await cachedAnalyticsFetch(
+      cacheKey,
+      async () => {
+        const raw = (await googleApiFetch(
+          `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(gscSiteUrl)}/searchAnalytics/query`,
+          GSC_SCOPES,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              startDate,
+              endDate,
+              dimensions: [query.dimension],
+              rowLimit: 50,
+            }),
+          },
+        )) as GscQueryResponse
 
-    const rows = data.rows as Array<Record<string, unknown>> | undefined
+        return { rows: raw.rows || [] }
+      },
+      query.noCache ? 0 : undefined,
+    )
 
     return {
-      rows: rows || [],
+      ...data,
       startDate,
       endDate,
       dimension: query.dimension,
+      cached,
+      fetchedAt,
     }
   } catch (error: unknown) {
+    if (error instanceof GoogleApiError) {
+      throw createError({
+        statusCode: error.status,
+        statusMessage: `GSC performance error: ${error.message}`,
+      })
+    }
     const err = error as { statusCode?: number; statusMessage?: string; message?: string }
     throw createError({
       statusCode: err.statusCode || 500,
