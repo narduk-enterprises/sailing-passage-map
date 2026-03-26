@@ -67,9 +67,6 @@ export const RATE_LIMIT_POLICIES = {
   ownerTag: { namespace: 'owner-tag', maxRequests: 10, windowMs: MINUTE },
   upload: { namespace: 'upload', maxRequests: 60, windowMs: MINUTE },
   indexNowSubmit: { namespace: 'indexnow', maxRequests: 60, windowMs: MINUTE },
-  passageGenerate: { namespace: 'passage-generate', maxRequests: 20, windowMs: MINUTE },
-  passageEdit: { namespace: 'passage-edit', maxRequests: 30, windowMs: MINUTE },
-  influxExplorer: { namespace: 'influx-explorer', maxRequests: 20, windowMs: MINUTE },
   googleIndexingBatch: {
     namespace: 'google-indexing-batch',
     maxRequests: 60,
