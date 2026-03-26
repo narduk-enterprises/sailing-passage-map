@@ -1,6 +1,8 @@
 import { getCloudflareEnv } from '#server/utils/cloudflareEnv'
 import { getD2Database, insertPassageLocations } from '#server/utils/d2Storage'
 import { getPassagesStorage } from '#server/utils/storage'
+import { definePublicMutation, withValidatedBody } from '#layer/server/utils/mutation'
+import { RATE_LIMIT_POLICIES } from '#layer/server/utils/rateLimit'
 import { z } from 'zod'
 
 const locationSchema = z.object({
@@ -20,57 +22,59 @@ const bodySchema = z.object({
     locations: z.array(locationSchema).min(1, 'At least one location is required'),
 })
 
-export default defineEventHandler(async (event) => {
-    const id = getRouterParam(event, 'id')
-    if (!id) {
-        throw createError({ statusCode: 400, statusMessage: 'Passage ID is required' })
-    }
-
-    const { locations } = bodySchema.parse(await readBody(event))
-
-    const env = getCloudflareEnv(event)
-    const config = useRuntimeConfig()
-    const storageConfig = {
-        r2AccessKeyId: config.r2AccessKeyId,
-        r2SecretAccessKey: config.r2SecretAccessKey,
-    }
-
-    try {
-        // Save to D2 if available
-        const d2Db = getD2Database(env)
-        if (d2Db) {
-            const d2Locations = locations.map(loc => ({
-                coordinate: { lat: loc.lat, lon: loc.lon },
-                time: loc.time ?? '',
-                name: loc.name,
-                locality: loc.locality,
-                administrativeArea: loc.administrativeArea,
-                country: loc.country,
-                countryCode: loc.countryCode,
-                formattedAddress: loc.formattedAddress,
-                pointsOfInterest: loc.pointsOfInterest ? [loc.pointsOfInterest] : undefined,
-            }))
-            await insertPassageLocations(d2Db, id, d2Locations)
+export default definePublicMutation(
+    {
+        rateLimit: RATE_LIMIT_POLICIES.passageEdit,
+        parseBody: withValidatedBody(bodySchema.parse),
+    },
+    async ({ event, body: { locations } }) => {
+        const id = getRouterParam(event, 'id')
+        if (!id) {
+            throw createError({ statusCode: 400, statusMessage: 'Passage ID is required' })
         }
 
-        // Also update R2/S3 storage
-        const storage = getPassagesStorage(env, storageConfig)
-        const filename = id.endsWith('.json') ? id : `${id}.json`
-        const passage = await storage.readJSON<Record<string, unknown>>(filename)
-
-        if (passage) {
-            passage.locations = locations
-            await storage.writeJSON(filename, passage)
+        const env = getCloudflareEnv(event)
+        const config = useRuntimeConfig(event)
+        const storageConfig = {
+            r2AccessKeyId: config.r2AccessKeyId,
+            r2SecretAccessKey: config.r2SecretAccessKey,
         }
 
-        return { success: true, id, locationCount: locations.length }
-    }
-    catch (error: unknown) {
-        const err = error as { statusCode?: number; message?: string }
-        console.error(`Error saving locations for passage ${id}:`, error)
-        throw createError({
-            statusCode: err.statusCode || 500,
-            statusMessage: err.message || 'Failed to save locations',
-        })
-    }
-})
+        try {
+            const d2Db = getD2Database(env)
+            if (d2Db) {
+                const d2Locations = locations.map(loc => ({
+                    coordinate: { lat: loc.lat, lon: loc.lon },
+                    time: loc.time ?? '',
+                    name: loc.name,
+                    locality: loc.locality,
+                    administrativeArea: loc.administrativeArea,
+                    country: loc.country,
+                    countryCode: loc.countryCode,
+                    formattedAddress: loc.formattedAddress,
+                    pointsOfInterest: loc.pointsOfInterest ? [loc.pointsOfInterest] : undefined,
+                }))
+                await insertPassageLocations(d2Db, id, d2Locations)
+            }
+
+            const storage = getPassagesStorage(env, storageConfig)
+            const filename = id.endsWith('.json') ? id : `${id}.json`
+            const passage = await storage.readJSON<Record<string, unknown>>(filename)
+
+            if (passage) {
+                passage.locations = locations
+                await storage.writeJSON(filename, passage)
+            }
+
+            return { success: true, id, locationCount: locations.length }
+        }
+        catch (error: unknown) {
+            const err = error as { statusCode?: number; message?: string }
+            console.error(`Error saving locations for passage ${id}:`, error)
+            throw createError({
+                statusCode: err.statusCode || 500,
+                statusMessage: err.message || 'Failed to save locations',
+            })
+        }
+    },
+)

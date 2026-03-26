@@ -179,31 +179,30 @@ export async function exploreSchema(
         .map(r => r._value as string)
         .filter((name): name is string => typeof name === 'string' && name.length > 0)
 
-    /* eslint-disable nuxt-guardrails/no-map-async-in-server -- Parallel InfluxDB schema queries, not a DB N+1 */
     const measurements = await Promise.all(
-        measurementNames.map(async (name) => {
-            try {
-                const fieldsQuery = buildFieldsQuery(influxConfig.bucket, name, rangeStart, rangeEnd)
-                const fieldsResults = await executeQuery(influxConfig, fieldsQuery)
-                const fields = fieldsResults
-                    .map(r => r._value as string)
-                    .filter((f): f is string => typeof f === 'string' && f.length > 0)
+        measurementNames.map((name) =>
+            executeQuery(influxConfig, buildFieldsQuery(influxConfig.bucket, name, rangeStart, rangeEnd))
+                .then(async (fieldsResults) => {
+                    const fields = fieldsResults
+                        .map(r => r._value as string)
+                        .filter((f): f is string => typeof f === 'string' && f.length > 0)
 
-                const tagKeysQuery = buildTagKeysQuery(influxConfig.bucket, name)
-                const tagKeysResults = await executeQuery(influxConfig, tagKeysQuery)
-                const tagKeys = tagKeysResults
-                    .map(r => r._value as string)
-                    .filter((t): t is string => typeof t === 'string' && t.length > 0)
+                    const tagKeysResults = await executeQuery(
+                        influxConfig,
+                        buildTagKeysQuery(influxConfig.bucket, name),
+                    )
+                    const tagKeys = tagKeysResults
+                        .map(r => r._value as string)
+                        .filter((t): t is string => typeof t === 'string' && t.length > 0)
 
-                return { name, fields, tagKeys }
-            }
-            catch (error) {
-                console.error(`Error exploring measurement ${name}:`, error)
-                return { name, fields: [], tagKeys: [] }
-            }
-        }),
+                    return { name, fields, tagKeys }
+                })
+                .catch((error) => {
+                    console.error(`Error exploring measurement ${name}:`, error)
+                    return { name, fields: [], tagKeys: [] }
+                }),
+        ),
     )
-    /* eslint-enable nuxt-guardrails/no-map-async-in-server */
 
     return { measurements }
 }

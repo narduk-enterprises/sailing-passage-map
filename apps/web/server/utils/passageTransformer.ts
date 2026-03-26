@@ -1,4 +1,4 @@
-import type { Passage, PassageLocation, PassagePosition } from '../types/passage'
+import type { Passage, PassageLocation, PassagePosition } from '#server/types/passage'
 
 export interface InfluxPosition {
     _time: string

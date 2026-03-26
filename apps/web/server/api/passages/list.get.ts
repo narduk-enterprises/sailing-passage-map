@@ -47,31 +47,30 @@ export default defineEventHandler(async (event) => {
         const files = await storage.list()
         const jsonFiles = files.filter(f => f.endsWith('.json') && f !== 'queries.json')
 
-        /* eslint-disable nuxt-guardrails/no-map-async-in-server -- Parallel R2 reads, not a DB N+1 */
         const passages = await Promise.all(
-            jsonFiles.map(async (file) => {
-                const data = await storage.readJSON<Record<string, unknown>>(file)
-                if (!data) return null
-                return {
-                    id: data.id || file.replace('.json', ''),
-                    startTime: data.startTime,
-                    endTime: data.endTime,
-                    duration: data.duration,
-                    avgSpeed: data.avgSpeed,
-                    maxSpeed: data.maxSpeed,
-                    distance: data.distance,
-                    startLocation: data.startLocation,
-                    endLocation: data.endLocation,
-                    description: data.description,
-                    name: data.name,
-                    route: data.route,
-                    exportTimestamp: data.exportTimestamp,
-                    filename: file,
-                    encountersFilename: data.encountersFilename,
-                }
-            }),
+            jsonFiles.map((file) =>
+                storage.readJSON<Record<string, unknown>>(file).then((data) => {
+                    if (!data) return null
+                    return {
+                        id: data.id || file.replace('.json', ''),
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        duration: data.duration,
+                        avgSpeed: data.avgSpeed,
+                        maxSpeed: data.maxSpeed,
+                        distance: data.distance,
+                        startLocation: data.startLocation,
+                        endLocation: data.endLocation,
+                        description: data.description,
+                        name: data.name,
+                        route: data.route,
+                        exportTimestamp: data.exportTimestamp,
+                        filename: file,
+                        encountersFilename: data.encountersFilename,
+                    }
+                }),
+            ),
         )
-        /* eslint-enable nuxt-guardrails/no-map-async-in-server */
 
         return passages.filter(Boolean)
     }

@@ -67,18 +67,16 @@ export class D2ApiClient {
  * Get D2 API client from environment
  */
 export function getD2ApiClient(): D2ApiClient | null {
-    let apiUrl: string | undefined = process.env.D2_API_URL
-    let apiKey: string | undefined = process.env.D2_API_KEY
+    let apiUrl: string | undefined
+    let apiKey: string | undefined
 
-    if (!apiUrl) {
-        try {
-            const config = useRuntimeConfig()
-            apiUrl = config.d2ApiUrl
-            apiKey = config.d2ApiKey || apiKey
-        }
-        catch {
-            // useRuntimeConfig might fail in some contexts
-        }
+    try {
+        const config = useRuntimeConfig()
+        apiUrl = config.d2ApiUrl
+        apiKey = config.d2ApiKey
+    }
+    catch {
+        // useRuntimeConfig might fail in some contexts
     }
 
     if (!apiUrl) return null

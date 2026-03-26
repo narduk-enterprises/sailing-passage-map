@@ -11,8 +11,14 @@ const {
   displayedResults,
   runQuery,
   loadSchema,
-  formatCell,
 } = useInfluxExplorer()
+
+const tableColumns = computed(() =>
+  resultColumns.value.map(key => ({
+    accessorKey: key,
+    header: key,
+  })),
+)
 </script>
 
 <template>
@@ -59,21 +65,10 @@ const {
     <!-- Query results -->
     <div v-if="results.length > 0" class="pm-detail-card">
       <h3>Results ({{ results.length }} rows)</h3>
-      <div style="overflow-x: auto;">
-        <!-- eslint-disable-next-line atx/no-native-table -- Dynamic columns from query results, UTable requires static column config -->
-        <table class="pm-results-table">
-          <thead>
-            <tr>
-              <th v-for="key in resultColumns" :key="key">{{ key }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, i) in displayedResults" :key="i">
-              <td v-for="key in resultColumns" :key="key">{{ formatCell(row[key]) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <UTable
+        :data="displayedResults"
+        :columns="tableColumns"
+      />
       <div v-if="results.length > 100" style="padding-top: 0.75rem; font-size: 0.8125rem; color: var(--pm-text-dim);">
         Showing first 100 of {{ results.length }} rows
       </div>

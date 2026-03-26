@@ -88,8 +88,20 @@ export function getStorageAdapter(
         'queries': 'passage-map-queries',
     } as const
 
-    const r2AccessKeyId = config?.r2AccessKeyId || process.env.R2_ACCESS_KEY_ID
-    const r2SecretAccessKey = config?.r2SecretAccessKey || process.env.R2_SECRET_ACCESS_KEY
+    let runtimeConfig: { r2AccessKeyId?: string; r2SecretAccessKey?: string } = {}
+    try {
+        const nuxtConfig = useRuntimeConfig()
+        runtimeConfig = {
+            r2AccessKeyId: nuxtConfig.r2AccessKeyId,
+            r2SecretAccessKey: nuxtConfig.r2SecretAccessKey,
+        }
+    }
+    catch {
+        // useRuntimeConfig might fail in non-Nuxt contexts
+    }
+
+    const r2AccessKeyId = config?.r2AccessKeyId || runtimeConfig.r2AccessKeyId
+    const r2SecretAccessKey = config?.r2SecretAccessKey || runtimeConfig.r2SecretAccessKey
 
     let fallbackAdapter: StorageAdapter | undefined
     if (r2AccessKeyId && r2SecretAccessKey) {
